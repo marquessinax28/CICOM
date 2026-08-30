@@ -45,3 +45,6 @@ next-env.d.ts
 .codex/
 .impeccable/
 .playwright/
+
+# supabase CLI — caché local de `supabase link` (project-ref, pooler-url, etc.)
+supabase/.temp/

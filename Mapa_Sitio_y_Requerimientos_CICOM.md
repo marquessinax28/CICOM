@@ -119,7 +119,7 @@ Esta pregunta puede cambiar bastante el alcance (y el presupuesto) del proyecto,
 | lote_id | FK → lotes_boletos.id, nullable | null en boletos digitales |
 | tipo | text | fisico / beca_residente / colchon / digital |
 | estado | text | disponible / vendido |
-| folio | text, unique | código aleatorio, **no secuencial** |
+| folio | text, unique | código aleatorio de 12 caracteres, **no secuencial** — ver nota de diseño en CLAUDE.md sección 2 sobre la desviación de ≥128 bits |
 | password_hash | text | hasheada, nunca texto plano |
 | nombre_completo | text, nullable | se llena al comprar (digital) o al activar (pre-generado) |
 | correo | text, nullable | igual que arriba |
@@ -137,6 +137,15 @@ Esta pregunta puede cambiar bastante el alcance (y el presupuesto) del proyecto,
 | generado_por | FK → administradores.id | auditoría: quién lo generó |
 | fecha_generacion | timestamp | |
 | archivo_descargado | boolean, default false | el PDF de boletos se entrega una sola vez |
+
+**`cupos_boleto`** — tope configurable por tipo de boleto
+| Campo | Tipo | Notas |
+|---|---|---|
+| id | serial PK | |
+| tipo | text, unique | fisico / beca_residente / colchon / digital |
+| cupo_maximo | int | modificable solo por superadmin; la suma de los cuatro tipos no puede exceder 6,000 |
+| modificado_por | FK → administradores.id | auditoría |
+| fecha_modificacion | timestamp | |
 
 **`codigos_verificacion`** — para confirmar el correo antes de dejar comprar
 | Campo | Tipo | Notas |
@@ -257,7 +266,8 @@ Esta pregunta puede cambiar bastante el alcance (y el presupuesto) del proyecto,
 - **Sin sección de registro/cuentas.** Los datos del asistente (nombre, correo) se capturan al momento de la compra, directo en la tabla `boletos`. El acceso al certificado se valida en un solo paso: correo + contraseña del boleto, sin crear una cuenta intermedia.
 - **Generación del boleto:** el folio y la contraseña **no se pre-generan** — se crean justo cuando el webhook confirma el pago. La contraseña en texto plano se usa una sola vez, en ese instante, para dibujarse sobre la plantilla del boleto (misma técnica de superposición que el certificado); después solo se guarda su versión hasheada. El boleto se manda por correo y se descarga al mismo tiempo.
 - **Control del cupo máximo (6,000 boletos):** se valida contando los registros existentes en `boletos` dentro de la misma transacción de compra — no se usa un pool pre-generado de códigos "disponibles" para los digitales.
-- **Cuatro tipos de boleto:** físicos (~2,500), becas de residentes (~1,500), colchón (~500) y digitales (~1,500). Los primeros tres se **pre-generan por lotes** desde el panel de administración (sin pasar por pago); los digitales se generan al confirmarse el pago.
+- **Cuatro tipos de boleto:** físicos (cupo inicial 2,500), becas de residentes (cupo inicial 1,500), colchón (cupo inicial 500) y digitales (cupo inicial 1,500), cada uno con su tope en `cupos_boleto.cupo_maximo`. Los primeros tres se **pre-generan por lotes** desde el panel de administración (sin pasar por pago); los digitales se generan al confirmarse el pago.
+- **Tope configurable por tipo (`cupos_boleto`):** el superadmin puede mover cupo entre tipos sin tocar código (ej. bajar `colchon` y subir `fisico`). **La suma de `cupo_maximo` de los cuatro tipos no puede exceder 6,000, y esa restricción se valida en el servidor** — en la misma transacción que aplica el cambio, no en el cliente. Un intento de guardar cupos cuya suma rebase 6,000 se rechaza antes de escribir en la base de datos.
 - **Generación de lotes sin pago:** al generar un lote, el sistema entrega **una sola vez** un PDF con los boletos ya diseñados — misma técnica de superposición que el certificado (plantilla + folio y contraseña dibujados encima), un boleto por página. En la base de datos solo queda el hash de la contraseña. Cada lote queda registrado en auditoría inmutable (qué admin, cuándo, cuántos, de qué tipo).
 - **Entrega de los tres tipos sin pago:** los tres (físicos, becas, colchón) se descargan como PDF y **el admin los reparte manualmente**. La diferencia es solo el formato de salida: los físicos van a imprenta, las becas y el colchón se distribuyen digitalmente (correo manual, mensajería, etc.). El sistema no registra a quién se le entregó cada uno — esos datos se capturan cuando la persona activa su boleto.
 - **Rol de superadmin:** solo el superadmin (Cristian) puede modificar los cupos permitidos de boletos generables sin pago. Los admins normales no pueden alterar esos límites.
