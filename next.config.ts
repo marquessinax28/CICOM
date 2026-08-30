@@ -1,6 +1,6 @@
 import type { NextConfig } from "next";
 
-// Content-Security-Policy se genera por request en middleware.ts (necesita
+// Content-Security-Policy se genera por request en src/proxy.ts (necesita
 // nonce por petición); aquí solo van las cabeceras estáticas de la sección 9.
 const securityHeaders = [
   { key: "X-Content-Type-Options", value: "nosniff" },
