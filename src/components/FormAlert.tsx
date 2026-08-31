@@ -17,8 +17,8 @@ export function FormAlert({ tipo, mensaje, incidentId }: Props) {
       aria-live={esError ? "assertive" : "polite"}
       className={
         esError
-          ? "rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800"
-          : "rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800"
+          ? "rounded-xl border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-300"
+          : "rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-4 text-sm text-emerald-300"
       }
     >
       <p>{mensaje}</p>

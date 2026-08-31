@@ -14,7 +14,7 @@ export const viewport: Viewport = {
   interactiveWidget: "resizes-content",
   // El sitio tiene un solo tema fijo (identidad de marca), nunca sigue el
   // modo claro/oscuro del sistema operativo del visitante.
-  colorScheme: "light",
+  colorScheme: "dark",
 };
 
 export const metadata: Metadata = {

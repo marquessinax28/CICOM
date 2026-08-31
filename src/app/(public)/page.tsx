@@ -7,16 +7,12 @@ import { getCursosTalleres } from "@/lib/queries/cursos-talleres";
 import { getSedes } from "@/lib/queries/sedes";
 import { getPatrocinadores } from "@/lib/queries/patrocinadores";
 import { PlaceholderImage } from "@/components/PlaceholderImage";
+import { ModulosCarousel } from "@/components/ModulosCarousel";
+import { EstadoCongreso } from "@/components/EstadoCongreso";
 
 export const metadata: Metadata = {
   description:
     "CICOM, Ciclo de Conferencias Médicas del Antiguo Hospital Civil de Guadalajara y el Hospital Civil Nuevo Juan I. Menchaca. Módulos, concursos, sedes e inscripción.",
-};
-
-const ESTADO_TEXTO: Record<string, string> = {
-  proximo: "Próximamente",
-  en_curso: "En curso",
-  finalizado: "Edición finalizada",
 };
 
 const LARGO_EXTRACTO = 220;
@@ -42,7 +38,7 @@ export default async function HomePage() {
   return (
     <div>
       {/* Hero: edición, fechas, estado, lema */}
-      <section className="border-b border-slate-200 bg-navy text-white">
+      <section className="border-b border-white/10 bg-navy text-white">
         <div className="mx-auto max-w-6xl px-4 py-16 sm:py-24">
           <h1 className="text-3xl font-bold tracking-tight sm:text-5xl">
             {edicion?.nombre ?? "CICOM — Ciclo de Conferencias Médicas"}
@@ -51,87 +47,68 @@ export default async function HomePage() {
           {edicion?.lema && (
             <p className="mt-4 max-w-2xl text-lg text-slate-300">{edicion.lema}</p>
           )}
-          <div className="mt-6 flex flex-wrap gap-3 text-sm text-slate-300">
-            <span className="rounded-full border border-slate-700 px-3 py-1">
-              {edicion?.estado ? (ESTADO_TEXTO[edicion.estado] ?? edicion.estado) : "Estado por confirmar"}
-            </span>
-            <span className="rounded-full border border-slate-700 px-3 py-1">
+          <div className="mt-6 flex flex-col items-start gap-2 text-lg text-dorado">
+            <span>
               {edicion?.fecha_inicio && edicion?.fecha_fin
                 ? `${new Date(edicion.fecha_inicio).toLocaleDateString("es-MX", {
                     day: "numeric",
                     month: "long",
+                    timeZone: "UTC",
                   })} – ${new Date(edicion.fecha_fin).toLocaleDateString("es-MX", {
                     day: "numeric",
                     month: "long",
                     year: "numeric",
+                    timeZone: "UTC",
                   })}`
                 : "Fechas por confirmar"}
             </span>
+            {edicion?.fecha_inicio && edicion?.fecha_fin && (
+              <EstadoCongreso fechaInicio={edicion.fecha_inicio} fechaFin={edicion.fecha_fin} />
+            )}
           </div>
         </div>
       </section>
 
       {/* Profesor(a) homenajeado(a) */}
-      <Section title="Profesor(a) homenajeado(a)">
-        <div className="flex flex-col gap-6 sm:flex-row sm:items-center">
-          <div className="relative h-40 w-40 shrink-0 overflow-hidden rounded-full">
-            <PlaceholderImage
-              src={edicion?.homenajeado_foto_home_url ?? null}
-              alt={edicion?.homenajeado_nombre ?? "Profesor(a) homenajeado(a)"}
-              sizes="160px"
-            />
-          </div>
-          <div>
-            <h3 className="text-xl font-semibold">
-              {edicion?.homenajeado_nombre ?? "Por anunciar"}
-            </h3>
-            <p className="mt-2 max-w-2xl text-slate-600">
-              {homenajeadoBio ? homenajeadoBio.corto : "Biografía próximamente."}
-            </p>
-            <Link
-              href="/homenajeado"
-              className="mt-3 inline-block text-sm font-medium text-slate-900 underline underline-offset-4"
-            >
-              Ver más...
-            </Link>
-          </div>
-        </div>
-      </Section>
+      <SplitFeature
+        titulo="Profesor(a) homenajeado(a)"
+        subtitulo={edicion?.homenajeado_nombre ?? "Por anunciar"}
+        imagenSrc={edicion?.homenajeado_foto_home_url ?? null}
+        imagenAlt={edicion?.homenajeado_nombre ?? "Profesor(a) homenajeado(a)"}
+      >
+        <p>{homenajeadoBio ? homenajeadoBio.corto : "Biografía próximamente."}</p>
+        <Link
+          href="/homenajeado"
+          className="mt-6 inline-flex items-center gap-1.5 rounded-full bg-dorado px-5 py-2.5 text-sm font-semibold text-navy transition-opacity hover:opacity-90"
+        >
+          Ver más...
+        </Link>
+      </SplitFeature>
 
       {/* Mensaje de bienvenida */}
-      <Section title="Mensaje de bienvenida" tono="alterno">
-        <div className="flex flex-col gap-6 sm:flex-row sm:items-center">
-          <div className="relative h-40 w-40 shrink-0 overflow-hidden rounded-full">
-            <PlaceholderImage
-              src={edicion?.bienvenida_autor_foto_url ?? null}
-              alt={edicion?.bienvenida_autor_nombre ?? "Mensaje de bienvenida"}
-              sizes="160px"
-            />
-          </div>
-          <div>
-            <h3 className="text-xl font-semibold">
-              {edicion?.bienvenida_autor_nombre ?? "Por anunciar"}
-            </h3>
-            {edicion?.bienvenida_mensaje ? (
-              <details className="mt-2 max-w-2xl text-slate-600">
-                <summary className="cursor-pointer list-none text-slate-600 [&::-webkit-details-marker]:hidden">
-                  {extracto(edicion.bienvenida_mensaje).corto}{" "}
-                  {extracto(edicion.bienvenida_mensaje).truncado && (
-                    <span className="font-medium text-slate-900 underline underline-offset-4">
-                      Ver más...
-                    </span>
-                  )}
-                </summary>
-                <p className="mt-2 whitespace-pre-line">{edicion.bienvenida_mensaje}</p>
-              </details>
-            ) : (
-              <p className="mt-2 max-w-2xl text-slate-600">
-                Mensaje próximamente.
-              </p>
-            )}
-          </div>
-        </div>
-      </Section>
+      <SplitFeature
+        titulo="Mensaje de bienvenida"
+        subtitulo={edicion?.bienvenida_autor_nombre ?? "Por anunciar"}
+        imagenSrc={edicion?.bienvenida_autor_foto_url ?? null}
+        imagenAlt={edicion?.bienvenida_autor_nombre ?? "Mensaje de bienvenida"}
+        invertido
+      >
+        {edicion?.bienvenida_mensaje ? (
+          <details>
+            <summary className="cursor-pointer list-none [&::-webkit-details-marker]:hidden">
+              {extracto(edicion.bienvenida_mensaje).corto}{" "}
+              {extracto(edicion.bienvenida_mensaje).truncado && (
+                <span className="font-medium text-dorado underline underline-offset-4">
+                  Ver más...
+                </span>
+              )}
+            </summary>
+            <p className="mt-2 whitespace-pre-line">{edicion.bienvenida_mensaje}</p>
+          </details>
+        ) : (
+          <p>Mensaje próximamente.</p>
+        )}
+      </SplitFeature>
 
       {/* Módulos */}
       <Section title="Módulos">
@@ -139,21 +116,19 @@ export default async function HomePage() {
           <EstadoVacio texto="Los módulos se publicarán próximamente." />
         ) : (
           <>
-            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
-              {modulosDestacados.map((modulo) => (
-                <TarjetaRecurso
-                  key={modulo.id}
-                  nombre={modulo.nombre}
-                  subtitulo={modulo.especialidad !== modulo.nombre ? modulo.especialidad : null}
-                  href={modulo.archivo_pdf_url}
-                  icono={modulo.icono_url}
-                />
-              ))}
-            </div>
+            <ModulosCarousel
+              items={modulosDestacados.map((modulo) => ({
+                id: modulo.id,
+                nombre: modulo.nombre,
+                subtitulo: modulo.especialidad !== modulo.nombre ? modulo.especialidad : null,
+                href: modulo.archivo_pdf_url,
+                icono: modulo.icono_url,
+              }))}
+            />
             {modulos.length > modulosDestacados.length && (
               <Link
                 href="/programas"
-                className="mt-6 inline-block text-sm font-medium text-slate-900 underline underline-offset-4"
+                className="mt-6 inline-block text-sm font-medium text-dorado underline underline-offset-4"
               >
                 Ver los {modulos.length} módulos
               </Link>
@@ -172,18 +147,18 @@ export default async function HomePage() {
               <Link
                 key={concurso.id}
                 href={`/concursos/${concurso.slug}`}
-                className="rounded-xl border border-slate-200 p-5 transition-colors hover:border-slate-400"
+                className="flex flex-col items-center rounded-2xl border border-white/10 bg-white/5 p-6 text-center transition-colors hover:border-dorado/40"
               >
-                <div className="relative mb-3 h-10 w-10 overflow-hidden rounded-lg">
-                  <PlaceholderImage src={concurso.icono_url} alt="" sizes="40px" />
+                <div className="relative mb-4 h-14 w-14 overflow-hidden rounded-xl">
+                  <PlaceholderImage src={concurso.icono_url} alt="" sizes="56px" />
                 </div>
-                <h3 className="font-semibold">{concurso.nombre}</h3>
+                <h3 className="font-semibold text-white">{concurso.nombre}</h3>
                 {concurso.categoria_tags && concurso.categoria_tags.length > 0 && (
-                  <div className="mt-2 flex flex-wrap gap-1.5">
+                  <div className="mt-2 flex flex-wrap justify-center gap-1.5">
                     {concurso.categoria_tags.map((tag) => (
                       <span
                         key={tag}
-                        className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600"
+                        className="rounded-full bg-white/10 px-2 py-0.5 text-xs text-slate-300"
                       >
                         {tag}
                       </span>
@@ -191,7 +166,7 @@ export default async function HomePage() {
                   </div>
                 )}
                 {concurso.descripcion && (
-                  <p className="mt-2 text-sm text-slate-600">
+                  <p className="mt-2 text-sm text-slate-300">
                     {concurso.descripcion}
                   </p>
                 )}
@@ -226,7 +201,7 @@ export default async function HomePage() {
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-4">
             {sedes.map((sede) => (
-              <div key={sede.id} className="overflow-hidden rounded-xl border border-slate-200">
+              <div key={sede.id} className="overflow-hidden rounded-xl border border-white/10 bg-white/5">
                 <div className="relative aspect-video">
                   <PlaceholderImage
                     src={sede.imagen_url}
@@ -235,9 +210,9 @@ export default async function HomePage() {
                   />
                 </div>
                 <div className="p-4">
-                  <h3 className="font-semibold">{sede.nombre}</h3>
+                  <h3 className="font-semibold text-white">{sede.nombre}</h3>
                   {sede.direccion && (
-                    <p className="mt-1 text-sm text-slate-600">{sede.direccion}</p>
+                    <p className="mt-1 text-sm text-slate-300">{sede.direccion}</p>
                   )}
                 </div>
               </div>
@@ -254,7 +229,7 @@ export default async function HomePage() {
           <div className="flex flex-wrap items-center gap-6">
             {patrocinadores.map((patrocinador) => {
               const logo = (
-                <div className="relative h-16 w-16 overflow-hidden rounded-lg">
+                <div className="relative h-16 w-16 overflow-hidden rounded-lg border border-white/10">
                   <PlaceholderImage src={patrocinador.logo_url} alt={patrocinador.nombre} sizes="64px" />
                 </div>
               );
@@ -281,6 +256,39 @@ export default async function HomePage() {
   );
 }
 
+function SplitFeature({
+  titulo,
+  subtitulo,
+  imagenSrc,
+  imagenAlt,
+  invertido = false,
+  children,
+}: {
+  titulo: string;
+  subtitulo: string;
+  imagenSrc: string | null;
+  imagenAlt: string;
+  invertido?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className={`grid md:grid-cols-2 ${invertido ? "bg-navy-light" : ""}`}>
+      <div
+        className={`flex flex-col justify-center px-4 py-14 sm:px-8 sm:py-20 lg:px-16 ${
+          invertido ? "md:order-2" : ""
+        }`}
+      >
+        <h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">{titulo}</h2>
+        <p className="mt-2 font-medium text-dorado">{subtitulo}</p>
+        <div className="mt-4 max-w-xl text-slate-300">{children}</div>
+      </div>
+      <div className={`relative min-h-72 md:min-h-[28rem] ${invertido ? "md:order-1" : ""}`}>
+        <PlaceholderImage src={imagenSrc} alt={imagenAlt} sizes="(min-width: 768px) 50vw, 100vw" />
+      </div>
+    </section>
+  );
+}
+
 function Section({
   title,
   tono = "base",
@@ -291,9 +299,9 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <section className={tono === "alterno" ? "bg-slate-50" : ""}>
+    <section className={tono === "alterno" ? "border-y border-white/10 bg-navy-light" : ""}>
       <div className="mx-auto max-w-6xl px-4 py-12">
-        <h2 className="mb-6 text-2xl font-bold tracking-tight">{title}</h2>
+        <h2 className="mb-6 text-2xl font-bold tracking-tight text-white">{title}</h2>
         {children}
       </div>
     </section>
@@ -302,7 +310,7 @@ function Section({
 
 function EstadoVacio({ texto }: { texto: string }) {
   return (
-    <p className="rounded-xl border border-dashed border-slate-300 p-8 text-center text-sm text-slate-500">
+    <p className="rounded-xl border border-dashed border-white/20 p-8 text-center text-sm text-slate-400">
       {texto}
     </p>
   );
@@ -321,19 +329,19 @@ function TarjetaRecurso({
 }) {
   const contenido = (
     <>
-      <div className="relative mb-3 h-10 w-10 overflow-hidden rounded-lg">
-        <PlaceholderImage src={icono ?? null} alt="" sizes="40px" />
+      <div className="relative mx-auto mb-4 h-14 w-14 overflow-hidden rounded-xl">
+        <PlaceholderImage src={icono ?? null} alt="" sizes="56px" />
       </div>
-      <h3 className="text-sm font-semibold leading-snug">{nombre}</h3>
-      {subtitulo && <p className="mt-1 text-xs text-slate-500">{subtitulo}</p>}
+      <h3 className="font-semibold text-white">{nombre}</h3>
+      {subtitulo && <p className="mt-1 text-sm text-slate-400">{subtitulo}</p>}
       {!href && (
-        <p className="mt-2 text-xs italic text-slate-400">Archivo próximamente</p>
+        <p className="mt-2 text-xs italic text-slate-500">Archivo próximamente</p>
       )}
     </>
   );
 
   const clases =
-    "block rounded-xl border border-slate-200 p-4 transition-colors";
+    "flex flex-col items-center rounded-2xl border border-white/10 bg-white/5 p-6 text-center transition-colors";
 
   if (href) {
     return (
@@ -341,7 +349,7 @@ function TarjetaRecurso({
         href={href}
         target="_blank"
         rel="noopener noreferrer"
-        className={`${clases} hover:border-slate-400`}
+        className={`${clases} hover:border-dorado/40`}
       >
         {contenido}
       </a>

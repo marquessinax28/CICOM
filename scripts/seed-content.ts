@@ -194,6 +194,8 @@ async function main() {
     numero: 34,
     nombre: "XXXIV CICOM",
     lema: eslogan,
+    fecha_inicio: "2026-11-23",
+    fecha_fin: "2026-11-27",
     homenajeado_foto_home_url: existsSync(fotoHomeHomenajeado)
       ? await subirImagen(supabase, fotoHomeHomenajeado, "ediciones/homenajeado-home.jpg")
       : undefined,

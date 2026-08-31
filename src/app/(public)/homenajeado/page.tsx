@@ -13,7 +13,7 @@ export default async function HomenajeadoPage() {
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-12">
-      <div className="relative mx-auto h-56 w-56 overflow-hidden rounded-full">
+      <div className="relative mx-auto h-56 w-56 overflow-hidden rounded-full border border-white/10">
         <PlaceholderImage
           src={edicion?.homenajeado_foto_subpagina_url ?? edicion?.homenajeado_foto_home_url ?? null}
           alt={nombre}
@@ -21,18 +21,18 @@ export default async function HomenajeadoPage() {
         />
       </div>
 
-      <h1 className="mt-6 text-center text-3xl font-bold tracking-tight">{nombre}</h1>
-      <p className="mt-1 text-center text-sm text-slate-500">
+      <h1 className="mt-6 text-center text-3xl font-bold tracking-tight text-white">{nombre}</h1>
+      <p className="mt-1 text-center text-sm text-slate-400">
         Profesor(a) homenajeado(a) — {edicion?.nombre ?? "CICOM"}
       </p>
 
       <div className="mt-8">
         {edicion?.homenajeado_bio ? (
-          <p className="whitespace-pre-line text-slate-700">
+          <p className="whitespace-pre-line text-slate-300">
             {edicion.homenajeado_bio}
           </p>
         ) : (
-          <p className="rounded-xl border border-dashed border-slate-300 p-8 text-center text-sm text-slate-500">
+          <p className="rounded-xl border border-dashed border-white/20 p-8 text-center text-sm text-slate-400">
             Biografía y discurso próximamente.
           </p>
         )}

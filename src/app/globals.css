@@ -3,22 +3,52 @@
 /* Paleta de marca del CICOM, tomada directo de los archivos de logo
    (Imagenes/Logo de leones), no inventada -- navy #141736 muestreado en
    14.jpg/22.jpg/3.jpg, dorado #c1a57b promediado de la línea bajo "XXXIV
-   CICOM" en 3.jpg. Un solo tema, fijo, sin importar prefers-color-scheme:
-   un congreso médico necesita una identidad visual estable, no una que
-   cambie según la configuración personal de cada visitante. */
+   CICOM" en 3.jpg. navy-light es #141736 aclarado ~8% para dar elevación a
+   tarjetas y secciones alternas sobre el fondo navy. Un solo tema, fijo, sin
+   importar prefers-color-scheme: un congreso médico necesita una identidad
+   visual estable, no una que cambie según la configuración personal de cada
+   visitante. Todo el sitio es navy -- pedido explícito del cliente, no solo
+   el hero. */
 @theme {
   --color-navy: #141736;
+  --color-navy-light: #1e2350;
   --color-dorado: #c1a57b;
 }
 
 :root {
-  /* Le dice al navegador que NO aplique sus propios ajustes automáticos de
-     modo oscuro (controles de formulario, scrollbar, etc.) -- el sitio
-     siempre es claro, decidido por el diseño, no por el sistema operativo. */
-  color-scheme: light;
+  /* El sitio es oscuro por diseño, no por el sistema operativo -- fijamos
+     "dark" para que los controles de formulario, la barra de scroll, etc.
+     del navegador combinen con el fondo navy en vez de dibujarse claros. */
+  color-scheme: dark;
 }
 
 body {
-  background: #ffffff;
-  color: #171717;
+  background: #141736;
+  color: #e7e9f5;
+}
+
+/* Galería infinita de logos del footer -- transform puro (barato en gama
+   baja, no dispara layout/paint), se detiene por completo si el visitante
+   pidió menos movimiento. */
+@keyframes marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+.animate-marquee {
+  animation: marquee 28s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-marquee {
+    animation: none;
+  }
+
+  .marquee-duplicado {
+    display: none;
+  }
 }

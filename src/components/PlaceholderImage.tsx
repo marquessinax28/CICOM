@@ -21,11 +21,11 @@ export function PlaceholderImage({ src, alt, className = "", sizes }: Props) {
       <div
         role="img"
         aria-label={alt}
-        className={`flex items-center justify-center bg-slate-100 ${className}`}
+        className={`flex items-center justify-center bg-white/5 ${className}`}
       >
         <svg
           viewBox="0 0 24 24"
-          className="h-8 w-8 text-slate-300"
+          className="h-8 w-8 text-slate-500"
           fill="none"
           stroke="currentColor"
           strokeWidth={1.5}

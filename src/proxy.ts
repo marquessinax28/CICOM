@@ -4,9 +4,17 @@ import type { NextRequest } from "next/server";
 export function proxy(request: NextRequest) {
   const nonce = Buffer.from(crypto.randomUUID()).toString("base64");
 
+  // El webpack dev server de Next.js aplica sus actualizaciones en caliente
+  // (Fast Refresh) con eval(), lo que la CSP de producción bloquea. Bloqueado
+  // a medias, una edición puede dejar la pestaña con estilos/JS a medio
+  // aplicar hasta un refresh manual -- por eso 'unsafe-eval' se permite SOLO
+  // en desarrollo. En producción no existe ese servidor de HMR, así que la
+  // política real (la que protege a los visitantes) nunca lleva 'unsafe-eval'.
+  const scriptSrcDev = process.env.NODE_ENV === "development" ? " 'unsafe-eval'" : "";
+
   const contentSecurityPolicy = [
     "default-src 'self'",
-    `script-src 'self' 'nonce-${nonce}' https://js.stripe.com https://challenges.cloudflare.com`,
+    `script-src 'self' 'nonce-${nonce}'${scriptSrcDev} https://js.stripe.com https://challenges.cloudflare.com`,
     // 'unsafe-hashes' + este hash exacto: next/image inyecta
     // style="color:transparent" en TODO <img> que renderiza (no hay forma de
     // ponerle nonce, es interno de Next.js). Sin esto, cada imagen del sitio

@@ -26,7 +26,7 @@ export default function ErrorPublico({
       />
       <button
         onClick={reset}
-        className="mt-4 rounded-lg bg-navy px-5 py-2.5 text-sm font-semibold text-white"
+        className="mt-4 rounded-lg bg-dorado px-5 py-2.5 text-sm font-semibold text-navy"
       >
         Reintentar
       </button>

@@ -44,8 +44,8 @@ export function ProgramasBuscador({ items }: { items: ItemBuscable[] }) {
       const el = document.getElementById(item.accion.targetId);
       if (el) {
         el.scrollIntoView({ behavior: "smooth", block: "center" });
-        el.classList.add("ring-2", "ring-navy");
-        setTimeout(() => el.classList.remove("ring-2", "ring-navy"), 2000);
+        el.classList.add("ring-2", "ring-dorado");
+        setTimeout(() => el.classList.remove("ring-2", "ring-dorado"), 2000);
       }
     }
     setQuery("");
@@ -101,17 +101,17 @@ export function ProgramasBuscador({ items }: { items: ItemBuscable[] }) {
         onBlur={() => setTimeout(() => setIsOpen(false), 150)}
         onKeyDown={onKeyDown}
         placeholder="Buscar un módulo, curso o concurso..."
-        className="w-full rounded-lg border border-slate-300 px-4 py-2.5 text-base"
+        className="w-full rounded-lg border border-white/20 bg-white/5 px-4 py-2.5 text-base text-white placeholder-slate-400 focus:border-dorado focus:outline-none"
       />
 
       {isOpen && query && (
         <ul
           id={listboxId}
           role="listbox"
-          className="absolute z-30 mt-1.5 max-h-80 w-full overflow-y-auto rounded-lg border border-slate-200 bg-white py-1 shadow-lg"
+          className="absolute z-30 mt-1.5 max-h-80 w-full overflow-y-auto rounded-lg border border-white/10 bg-navy-light py-1 shadow-lg"
         >
           {resultados.length === 0 ? (
-            <li className="px-4 py-3 text-sm text-slate-500">Sin resultados.</li>
+            <li className="px-4 py-3 text-sm text-slate-400">Sin resultados.</li>
           ) : (
             resultados.map((item, i) => (
               <li
@@ -123,16 +123,16 @@ export function ProgramasBuscador({ items }: { items: ItemBuscable[] }) {
                 onMouseDown={() => ejecutar(item)}
                 onMouseEnter={() => setActiveIndex(i)}
                 className={`flex cursor-pointer items-center justify-between gap-3 px-4 py-2.5 text-sm ${
-                  i === activeIndex ? "bg-slate-100" : ""
+                  i === activeIndex ? "bg-white/10" : ""
                 }`}
               >
                 <span>
-                  <span className="font-medium text-slate-900">{item.nombre}</span>
+                  <span className="font-medium text-white">{item.nombre}</span>
                   {item.subtitulo && (
-                    <span className="ml-2 text-xs text-slate-500">{item.subtitulo}</span>
+                    <span className="ml-2 text-xs text-slate-400">{item.subtitulo}</span>
                   )}
                 </span>
-                <span className="shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-500">
+                <span className="shrink-0 rounded-full bg-white/10 px-2 py-0.5 text-xs text-slate-300">
                   {item.tipo}
                 </span>
               </li>

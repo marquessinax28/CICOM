@@ -47,8 +47,8 @@ export default async function ProgramasPage() {
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-12">
-      <h1 className="text-3xl font-bold tracking-tight">Programas</h1>
-      <p className="mt-2 text-slate-600">
+      <h1 className="text-3xl font-bold tracking-tight text-white">Programas</h1>
+      <p className="mt-2 text-slate-300">
         Módulos, cursos y talleres del congreso.
       </p>
 
@@ -57,7 +57,7 @@ export default async function ProgramasPage() {
       </div>
 
       <section className="mt-10">
-        <h2 className="text-xl font-semibold">Módulos ({modulos.length})</h2>
+        <h2 className="text-xl font-semibold text-white">Módulos ({modulos.length})</h2>
         <ul className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
           {modulos.map((modulo) => (
             <li key={modulo.id} id={`modulo-${modulo.id}`} className="scroll-mt-24 rounded-xl transition-shadow">
@@ -66,30 +66,30 @@ export default async function ProgramasPage() {
                   href={modulo.archivo_pdf_url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="block rounded-xl border border-slate-200 p-4 hover:border-slate-400"
+                  className="block rounded-xl border border-white/10 bg-white/5 p-4 hover:border-dorado/40"
                 >
                   <div className="relative mb-3 h-10 w-10 overflow-hidden rounded-lg">
                     <PlaceholderImage src={modulo.icono_url} alt="" sizes="40px" />
                   </div>
-                  <p className="text-sm font-semibold leading-snug">{modulo.nombre}</p>
+                  <p className="text-sm font-semibold leading-snug text-white">{modulo.nombre}</p>
                   {modulo.especialidad && modulo.especialidad !== modulo.nombre && (
-                    <p className="mt-1 text-xs text-slate-500">
+                    <p className="mt-1 text-xs text-slate-400">
                       {modulo.especialidad}
                     </p>
                   )}
                 </a>
               ) : (
-                <div className="rounded-xl border border-slate-200 p-4">
+                <div className="rounded-xl border border-white/10 bg-white/5 p-4">
                   <div className="relative mb-3 h-10 w-10 overflow-hidden rounded-lg">
                     <PlaceholderImage src={modulo.icono_url} alt="" sizes="40px" />
                   </div>
-                  <p className="text-sm font-semibold leading-snug">{modulo.nombre}</p>
+                  <p className="text-sm font-semibold leading-snug text-white">{modulo.nombre}</p>
                   {modulo.especialidad && modulo.especialidad !== modulo.nombre && (
-                    <p className="mt-1 text-xs text-slate-500">
+                    <p className="mt-1 text-xs text-slate-400">
                       {modulo.especialidad}
                     </p>
                   )}
-                  <p className="mt-2 text-xs italic text-slate-400">
+                  <p className="mt-2 text-xs italic text-slate-500">
                     PDF próximamente
                   </p>
                 </div>
@@ -100,9 +100,9 @@ export default async function ProgramasPage() {
       </section>
 
       <section className="mt-12">
-        <h2 className="text-xl font-semibold">Cursos y talleres</h2>
+        <h2 className="text-xl font-semibold text-white">Cursos y talleres</h2>
         {cursosTalleres.length === 0 ? (
-          <p className="mt-4 rounded-xl border border-dashed border-slate-300 p-8 text-center text-sm text-slate-500">
+          <p className="mt-4 rounded-xl border border-dashed border-white/20 p-8 text-center text-sm text-slate-400">
             Se publicarán próximamente.
           </p>
         ) : (
@@ -114,14 +114,14 @@ export default async function ProgramasPage() {
                     href={curso.archivo_url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="block rounded-xl border border-slate-200 p-4 hover:border-slate-400"
+                    className="block rounded-xl border border-white/10 bg-white/5 p-4 hover:border-dorado/40"
                   >
-                    <p className="text-sm font-semibold leading-snug">{curso.nombre}</p>
+                    <p className="text-sm font-semibold leading-snug text-white">{curso.nombre}</p>
                   </a>
                 ) : (
-                  <div className="rounded-xl border border-slate-200 p-4">
-                    <p className="text-sm font-semibold leading-snug">{curso.nombre}</p>
-                    <p className="mt-2 text-xs italic text-slate-400">
+                  <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+                    <p className="text-sm font-semibold leading-snug text-white">{curso.nombre}</p>
+                    <p className="mt-2 text-xs italic text-slate-500">
                       Próximamente
                     </p>
                   </div>

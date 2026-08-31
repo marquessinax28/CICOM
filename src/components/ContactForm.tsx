@@ -59,7 +59,7 @@ export function ContactForm() {
       )}
       <form onSubmit={onSubmit} className="flex flex-col gap-4">
         <div>
-          <label htmlFor="nombre" className="block text-sm font-medium">
+          <label htmlFor="nombre" className="block text-sm font-medium text-slate-200">
             Nombre completo
           </label>
           <input
@@ -67,11 +67,11 @@ export function ContactForm() {
             name="nombre"
             required
             maxLength={200}
-            className="mt-1.5 w-full rounded-lg border border-slate-300 px-4 py-2.5 text-base"
+            className="mt-1.5 w-full rounded-lg border border-white/20 bg-white/5 px-4 py-2.5 text-base text-white focus:border-dorado focus:outline-none"
           />
         </div>
         <div>
-          <label htmlFor="correo" className="block text-sm font-medium">
+          <label htmlFor="correo" className="block text-sm font-medium text-slate-200">
             Correo electrónico
           </label>
           <input
@@ -80,11 +80,11 @@ export function ContactForm() {
             type="email"
             required
             maxLength={254}
-            className="mt-1.5 w-full rounded-lg border border-slate-300 px-4 py-2.5 text-base"
+            className="mt-1.5 w-full rounded-lg border border-white/20 bg-white/5 px-4 py-2.5 text-base text-white focus:border-dorado focus:outline-none"
           />
         </div>
         <div>
-          <label htmlFor="mensaje" className="block text-sm font-medium">
+          <label htmlFor="mensaje" className="block text-sm font-medium text-slate-200">
             Mensaje
           </label>
           <textarea
@@ -93,14 +93,14 @@ export function ContactForm() {
             required
             maxLength={5000}
             rows={5}
-            className="mt-1.5 w-full rounded-lg border border-slate-300 px-4 py-2.5 text-base"
+            className="mt-1.5 w-full rounded-lg border border-white/20 bg-white/5 px-4 py-2.5 text-base text-white focus:border-dorado focus:outline-none"
           />
         </div>
 
         {TURNSTILE_SITE_KEY ? (
           <div className="cf-turnstile" data-sitekey={TURNSTILE_SITE_KEY} />
         ) : (
-          <p className="text-xs italic text-slate-400">
+          <p className="text-xs italic text-slate-500">
             Verificación anti-bot no configurada todavía.
           </p>
         )}
@@ -110,7 +110,7 @@ export function ContactForm() {
         <button
           type="submit"
           disabled={estado === "enviando"}
-          className="self-start rounded-lg bg-navy px-6 py-2.5 text-sm font-semibold text-white disabled:opacity-60"
+          className="self-start rounded-lg bg-dorado px-6 py-2.5 text-sm font-semibold text-navy disabled:opacity-60"
         >
           {estado === "enviando" ? "Enviando..." : "Enviar mensaje"}
         </button>
