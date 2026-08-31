@@ -22,17 +22,17 @@ export default async function HomenajeadoPage() {
       </div>
 
       <h1 className="mt-6 text-center text-3xl font-bold tracking-tight">{nombre}</h1>
-      <p className="mt-1 text-center text-sm text-slate-500 dark:text-slate-400">
+      <p className="mt-1 text-center text-sm text-slate-500">
         Profesor(a) homenajeado(a) — {edicion?.nombre ?? "CICOM"}
       </p>
 
       <div className="mt-8">
         {edicion?.homenajeado_bio ? (
-          <p className="whitespace-pre-line text-slate-700 dark:text-slate-300">
+          <p className="whitespace-pre-line text-slate-700">
             {edicion.homenajeado_bio}
           </p>
         ) : (
-          <p className="rounded-xl border border-dashed border-slate-300 p-8 text-center text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
+          <p className="rounded-xl border border-dashed border-slate-300 p-8 text-center text-sm text-slate-500">
             Biografía y discurso próximamente.
           </p>
         )}

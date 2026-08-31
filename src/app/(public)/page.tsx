@@ -42,11 +42,12 @@ export default async function HomePage() {
   return (
     <div>
       {/* Hero: edición, fechas, estado, lema */}
-      <section className="border-b border-slate-200 bg-slate-950 text-white dark:border-slate-800">
+      <section className="border-b border-slate-200 bg-navy text-white">
         <div className="mx-auto max-w-6xl px-4 py-16 sm:py-24">
           <h1 className="text-3xl font-bold tracking-tight sm:text-5xl">
             {edicion?.nombre ?? "CICOM — Ciclo de Conferencias Médicas"}
           </h1>
+          <div className="mt-4 h-0.5 w-16 bg-dorado" />
           {edicion?.lema && (
             <p className="mt-4 max-w-2xl text-lg text-slate-300">{edicion.lema}</p>
           )}
@@ -84,12 +85,12 @@ export default async function HomePage() {
             <h3 className="text-xl font-semibold">
               {edicion?.homenajeado_nombre ?? "Por anunciar"}
             </h3>
-            <p className="mt-2 max-w-2xl text-slate-600 dark:text-slate-300">
+            <p className="mt-2 max-w-2xl text-slate-600">
               {homenajeadoBio ? homenajeadoBio.corto : "Biografía próximamente."}
             </p>
             <Link
               href="/homenajeado"
-              className="mt-3 inline-block text-sm font-medium text-slate-900 underline underline-offset-4 dark:text-white"
+              className="mt-3 inline-block text-sm font-medium text-slate-900 underline underline-offset-4"
             >
               Ver más...
             </Link>
@@ -112,11 +113,11 @@ export default async function HomePage() {
               {edicion?.bienvenida_autor_nombre ?? "Por anunciar"}
             </h3>
             {edicion?.bienvenida_mensaje ? (
-              <details className="mt-2 max-w-2xl text-slate-600 dark:text-slate-300">
-                <summary className="cursor-pointer list-none text-slate-600 [&::-webkit-details-marker]:hidden dark:text-slate-300">
+              <details className="mt-2 max-w-2xl text-slate-600">
+                <summary className="cursor-pointer list-none text-slate-600 [&::-webkit-details-marker]:hidden">
                   {extracto(edicion.bienvenida_mensaje).corto}{" "}
                   {extracto(edicion.bienvenida_mensaje).truncado && (
-                    <span className="font-medium text-slate-900 underline underline-offset-4 dark:text-white">
+                    <span className="font-medium text-slate-900 underline underline-offset-4">
                       Ver más...
                     </span>
                   )}
@@ -124,7 +125,7 @@ export default async function HomePage() {
                 <p className="mt-2 whitespace-pre-line">{edicion.bienvenida_mensaje}</p>
               </details>
             ) : (
-              <p className="mt-2 max-w-2xl text-slate-600 dark:text-slate-300">
+              <p className="mt-2 max-w-2xl text-slate-600">
                 Mensaje próximamente.
               </p>
             )}
@@ -143,7 +144,7 @@ export default async function HomePage() {
                 <TarjetaRecurso
                   key={modulo.id}
                   nombre={modulo.nombre}
-                  subtitulo={modulo.especialidad}
+                  subtitulo={modulo.especialidad !== modulo.nombre ? modulo.especialidad : null}
                   href={modulo.archivo_pdf_url}
                   icono={modulo.icono_url}
                 />
@@ -152,7 +153,7 @@ export default async function HomePage() {
             {modulos.length > modulosDestacados.length && (
               <Link
                 href="/programas"
-                className="mt-6 inline-block text-sm font-medium text-slate-900 underline underline-offset-4 dark:text-white"
+                className="mt-6 inline-block text-sm font-medium text-slate-900 underline underline-offset-4"
               >
                 Ver los {modulos.length} módulos
               </Link>
@@ -171,7 +172,7 @@ export default async function HomePage() {
               <Link
                 key={concurso.id}
                 href={`/concursos/${concurso.slug}`}
-                className="rounded-xl border border-slate-200 p-5 transition-colors hover:border-slate-400 dark:border-slate-800 dark:hover:border-slate-600"
+                className="rounded-xl border border-slate-200 p-5 transition-colors hover:border-slate-400"
               >
                 <div className="relative mb-3 h-10 w-10 overflow-hidden rounded-lg">
                   <PlaceholderImage src={concurso.icono_url} alt="" sizes="40px" />
@@ -182,7 +183,7 @@ export default async function HomePage() {
                     {concurso.categoria_tags.map((tag) => (
                       <span
                         key={tag}
-                        className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600 dark:bg-slate-800 dark:text-slate-300"
+                        className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600"
                       >
                         {tag}
                       </span>
@@ -190,7 +191,7 @@ export default async function HomePage() {
                   </div>
                 )}
                 {concurso.descripcion && (
-                  <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
+                  <p className="mt-2 text-sm text-slate-600">
                     {concurso.descripcion}
                   </p>
                 )}
@@ -225,7 +226,7 @@ export default async function HomePage() {
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-4">
             {sedes.map((sede) => (
-              <div key={sede.id} className="overflow-hidden rounded-xl border border-slate-200 dark:border-slate-800">
+              <div key={sede.id} className="overflow-hidden rounded-xl border border-slate-200">
                 <div className="relative aspect-video">
                   <PlaceholderImage
                     src={sede.imagen_url}
@@ -236,7 +237,7 @@ export default async function HomePage() {
                 <div className="p-4">
                   <h3 className="font-semibold">{sede.nombre}</h3>
                   {sede.direccion && (
-                    <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">{sede.direccion}</p>
+                    <p className="mt-1 text-sm text-slate-600">{sede.direccion}</p>
                   )}
                 </div>
               </div>
@@ -290,7 +291,7 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <section className={tono === "alterno" ? "bg-slate-50 dark:bg-slate-900" : ""}>
+    <section className={tono === "alterno" ? "bg-slate-50" : ""}>
       <div className="mx-auto max-w-6xl px-4 py-12">
         <h2 className="mb-6 text-2xl font-bold tracking-tight">{title}</h2>
         {children}
@@ -301,7 +302,7 @@ function Section({
 
 function EstadoVacio({ texto }: { texto: string }) {
   return (
-    <p className="rounded-xl border border-dashed border-slate-300 p-8 text-center text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
+    <p className="rounded-xl border border-dashed border-slate-300 p-8 text-center text-sm text-slate-500">
       {texto}
     </p>
   );
@@ -324,15 +325,15 @@ function TarjetaRecurso({
         <PlaceholderImage src={icono ?? null} alt="" sizes="40px" />
       </div>
       <h3 className="text-sm font-semibold leading-snug">{nombre}</h3>
-      {subtitulo && <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{subtitulo}</p>}
+      {subtitulo && <p className="mt-1 text-xs text-slate-500">{subtitulo}</p>}
       {!href && (
-        <p className="mt-2 text-xs italic text-slate-400 dark:text-slate-500">Archivo próximamente</p>
+        <p className="mt-2 text-xs italic text-slate-400">Archivo próximamente</p>
       )}
     </>
   );
 
   const clases =
-    "block rounded-xl border border-slate-200 p-4 transition-colors dark:border-slate-800";
+    "block rounded-xl border border-slate-200 p-4 transition-colors";
 
   if (href) {
     return (
@@ -340,7 +341,7 @@ function TarjetaRecurso({
         href={href}
         target="_blank"
         rel="noopener noreferrer"
-        className={`${clases} hover:border-slate-400 dark:hover:border-slate-600`}
+        className={`${clases} hover:border-slate-400`}
       >
         {contenido}
       </a>

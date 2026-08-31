@@ -39,7 +39,7 @@ export default async function ConcursoDetallePage({
           {concurso.categoria_tags.map((tag) => (
             <span
               key={tag}
-              className="rounded-full bg-slate-100 px-2.5 py-1 text-xs text-slate-600 dark:bg-slate-800 dark:text-slate-300"
+              className="rounded-full bg-slate-100 px-2.5 py-1 text-xs text-slate-600"
             >
               {tag}
             </span>
@@ -48,15 +48,15 @@ export default async function ConcursoDetallePage({
       )}
 
       {concurso.descripcion ? (
-        <p className="mt-6 text-slate-700 dark:text-slate-300">{concurso.descripcion}</p>
+        <p className="mt-6 text-slate-700">{concurso.descripcion}</p>
       ) : (
-        <p className="mt-6 text-sm italic text-slate-400 dark:text-slate-500">
+        <p className="mt-6 text-sm italic text-slate-400">
           Descripción próximamente.
         </p>
       )}
 
       {concurso.fecha_limite && (
-        <p className="mt-4 text-sm text-slate-500 dark:text-slate-400">
+        <p className="mt-4 text-sm text-slate-500">
           Fecha límite de participación:{" "}
           {new Date(concurso.fecha_limite).toLocaleDateString("es-MX", {
             day: "numeric",
@@ -71,12 +71,12 @@ export default async function ConcursoDetallePage({
           href={concurso.archivo_bases_pdf}
           target="_blank"
           rel="noopener noreferrer"
-          className="mt-8 inline-block rounded-lg bg-slate-950 px-5 py-2.5 text-sm font-semibold text-white dark:bg-white dark:text-slate-950"
+          className="mt-8 inline-block rounded-lg bg-navy px-5 py-2.5 text-sm font-semibold text-white"
         >
           Descargar bases
         </a>
       ) : (
-        <p className="mt-8 text-sm italic text-slate-400 dark:text-slate-500">
+        <p className="mt-8 text-sm italic text-slate-400">
           Bases del concurso próximamente.
         </p>
       )}

@@ -25,17 +25,17 @@ export function MobileNav() {
 
   return (
     <details ref={detailsRef} className="relative md:hidden">
-      <summary className="flex h-11 w-11 cursor-pointer list-none items-center justify-center rounded-md border border-slate-300 [&::-webkit-details-marker]:hidden dark:border-slate-700">
+      <summary className="flex h-11 w-11 cursor-pointer list-none items-center justify-center rounded-md border border-slate-300 [&::-webkit-details-marker]:hidden">
         <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={1.8}>
           <path d="M4 6h16M4 12h16M4 18h16" strokeLinecap="round" />
         </svg>
       </summary>
-      <nav className="absolute right-0 top-full mt-2 flex w-48 flex-col gap-1 rounded-lg border border-slate-200 bg-white p-2 shadow-lg dark:border-slate-800 dark:bg-slate-950">
+      <nav className="absolute right-0 top-full mt-2 flex w-48 flex-col gap-1 rounded-lg border border-slate-200 bg-white p-2 shadow-lg">
         {ENLACES.map((enlace) => (
           <Link
             key={enlace.href}
             href={enlace.href}
-            className="rounded-md px-3 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800"
+            className="rounded-md px-3 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-100"
           >
             {enlace.label}
           </Link>

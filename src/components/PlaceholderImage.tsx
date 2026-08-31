@@ -9,17 +9,23 @@ type Props = {
 
 // Si no hay foto todavía, un marcador neutro -- nunca un ícono de imagen
 // rota ni un hueco en el layout. Las tarjetas se ven bien con o sin foto.
+//
+// Nota: next/image con `fill` inyecta sus estilos de posicionamiento
+// (position:absolute, height:100%, etc.) como atributo style inline, sin
+// nonce -- la CSP del sitio los bloquea (confirmado con un navegador real:
+// la imagen quedaba con position:static, mal encajada). Por eso aquí se usa
+// tamaño fijo + clases de Tailwind para llenar el contenedor, nunca `fill`.
 export function PlaceholderImage({ src, alt, className = "", sizes }: Props) {
   if (!src) {
     return (
       <div
         role="img"
         aria-label={alt}
-        className={`flex items-center justify-center bg-slate-100 dark:bg-slate-800 ${className}`}
+        className={`flex items-center justify-center bg-slate-100 ${className}`}
       >
         <svg
           viewBox="0 0 24 24"
-          className="h-8 w-8 text-slate-300 dark:text-slate-600"
+          className="h-8 w-8 text-slate-300"
           fill="none"
           stroke="currentColor"
           strokeWidth={1.5}
@@ -36,9 +42,10 @@ export function PlaceholderImage({ src, alt, className = "", sizes }: Props) {
     <Image
       src={src}
       alt={alt}
-      fill
+      width={400}
+      height={400}
       sizes={sizes ?? "(min-width: 768px) 33vw, 100vw"}
-      className={`object-cover ${className}`}
+      className={`h-full w-full object-cover ${className}`}
     />
   );
 }

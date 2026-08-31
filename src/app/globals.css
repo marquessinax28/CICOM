@@ -1,23 +1,24 @@
 @import "tailwindcss";
 
+/* Paleta de marca del CICOM, tomada directo de los archivos de logo
+   (Imagenes/Logo de leones), no inventada -- navy #141736 muestreado en
+   14.jpg/22.jpg/3.jpg, dorado #c1a57b promediado de la línea bajo "XXXIV
+   CICOM" en 3.jpg. Un solo tema, fijo, sin importar prefers-color-scheme:
+   un congreso médico necesita una identidad visual estable, no una que
+   cambie según la configuración personal de cada visitante. */
+@theme {
+  --color-navy: #141736;
+  --color-dorado: #c1a57b;
+}
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  /* Le dice al navegador que NO aplique sus propios ajustes automáticos de
+     modo oscuro (controles de formulario, scrollbar, etc.) -- el sitio
+     siempre es claro, decidido por el diseño, no por el sistema operativo. */
+  color-scheme: light;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
+  background: #ffffff;
+  color: #171717;
 }

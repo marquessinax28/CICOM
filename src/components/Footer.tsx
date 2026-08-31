@@ -21,7 +21,7 @@ const MARCAS = [
 
 export function Footer() {
   return (
-    <footer className="border-t border-slate-200 bg-slate-50 dark:border-slate-800 dark:bg-slate-900">
+    <footer className="border-t border-slate-200 bg-slate-50">
       <div className="mx-auto max-w-6xl px-4 py-8">
         <div className="flex flex-wrap items-center gap-3">
           {MARCAS.map((marca) => (
@@ -36,11 +36,11 @@ export function Footer() {
           ))}
         </div>
 
-        <div className="mt-6 flex flex-col gap-4 text-sm text-slate-600 sm:flex-row sm:items-center sm:justify-between dark:text-slate-400">
+        <div className="mt-6 flex flex-col gap-4 text-sm text-slate-600 sm:flex-row sm:items-center sm:justify-between">
           <p>© {new Date().getFullYear()} CICOM — Ciclo de Conferencias Médicas.</p>
           <nav className="flex flex-wrap gap-4">
             {ENLACES.map((enlace) => (
-              <Link key={enlace.href} href={enlace.href} className="hover:text-slate-950 dark:hover:text-white">
+              <Link key={enlace.href} href={enlace.href} className="hover:text-navy">
                 {enlace.label}
               </Link>
             ))}

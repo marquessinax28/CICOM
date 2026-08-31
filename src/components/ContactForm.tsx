@@ -67,7 +67,7 @@ export function ContactForm() {
             name="nombre"
             required
             maxLength={200}
-            className="mt-1.5 w-full rounded-lg border border-slate-300 px-4 py-2.5 text-base dark:border-slate-700 dark:bg-slate-900"
+            className="mt-1.5 w-full rounded-lg border border-slate-300 px-4 py-2.5 text-base"
           />
         </div>
         <div>
@@ -80,7 +80,7 @@ export function ContactForm() {
             type="email"
             required
             maxLength={254}
-            className="mt-1.5 w-full rounded-lg border border-slate-300 px-4 py-2.5 text-base dark:border-slate-700 dark:bg-slate-900"
+            className="mt-1.5 w-full rounded-lg border border-slate-300 px-4 py-2.5 text-base"
           />
         </div>
         <div>
@@ -93,14 +93,14 @@ export function ContactForm() {
             required
             maxLength={5000}
             rows={5}
-            className="mt-1.5 w-full rounded-lg border border-slate-300 px-4 py-2.5 text-base dark:border-slate-700 dark:bg-slate-900"
+            className="mt-1.5 w-full rounded-lg border border-slate-300 px-4 py-2.5 text-base"
           />
         </div>
 
         {TURNSTILE_SITE_KEY ? (
           <div className="cf-turnstile" data-sitekey={TURNSTILE_SITE_KEY} />
         ) : (
-          <p className="text-xs italic text-slate-400 dark:text-slate-500">
+          <p className="text-xs italic text-slate-400">
             Verificación anti-bot no configurada todavía.
           </p>
         )}
@@ -110,7 +110,7 @@ export function ContactForm() {
         <button
           type="submit"
           disabled={estado === "enviando"}
-          className="self-start rounded-lg bg-slate-950 px-6 py-2.5 text-sm font-semibold text-white disabled:opacity-60 dark:bg-white dark:text-slate-950"
+          className="self-start rounded-lg bg-navy px-6 py-2.5 text-sm font-semibold text-white disabled:opacity-60"
         >
           {estado === "enviando" ? "Enviando..." : "Enviar mensaje"}
         </button>

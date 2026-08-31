@@ -44,8 +44,8 @@ export function ProgramasBuscador({ items }: { items: ItemBuscable[] }) {
       const el = document.getElementById(item.accion.targetId);
       if (el) {
         el.scrollIntoView({ behavior: "smooth", block: "center" });
-        el.classList.add("ring-2", "ring-slate-950", "dark:ring-white");
-        setTimeout(() => el.classList.remove("ring-2", "ring-slate-950", "dark:ring-white"), 2000);
+        el.classList.add("ring-2", "ring-navy");
+        setTimeout(() => el.classList.remove("ring-2", "ring-navy"), 2000);
       }
     }
     setQuery("");
@@ -101,17 +101,17 @@ export function ProgramasBuscador({ items }: { items: ItemBuscable[] }) {
         onBlur={() => setTimeout(() => setIsOpen(false), 150)}
         onKeyDown={onKeyDown}
         placeholder="Buscar un módulo, curso o concurso..."
-        className="w-full rounded-lg border border-slate-300 px-4 py-2.5 text-base dark:border-slate-700 dark:bg-slate-900"
+        className="w-full rounded-lg border border-slate-300 px-4 py-2.5 text-base"
       />
 
       {isOpen && query && (
         <ul
           id={listboxId}
           role="listbox"
-          className="absolute z-30 mt-1.5 max-h-80 w-full overflow-y-auto rounded-lg border border-slate-200 bg-white py-1 shadow-lg dark:border-slate-800 dark:bg-slate-950"
+          className="absolute z-30 mt-1.5 max-h-80 w-full overflow-y-auto rounded-lg border border-slate-200 bg-white py-1 shadow-lg"
         >
           {resultados.length === 0 ? (
-            <li className="px-4 py-3 text-sm text-slate-500 dark:text-slate-400">Sin resultados.</li>
+            <li className="px-4 py-3 text-sm text-slate-500">Sin resultados.</li>
           ) : (
             resultados.map((item, i) => (
               <li
@@ -123,16 +123,16 @@ export function ProgramasBuscador({ items }: { items: ItemBuscable[] }) {
                 onMouseDown={() => ejecutar(item)}
                 onMouseEnter={() => setActiveIndex(i)}
                 className={`flex cursor-pointer items-center justify-between gap-3 px-4 py-2.5 text-sm ${
-                  i === activeIndex ? "bg-slate-100 dark:bg-slate-800" : ""
+                  i === activeIndex ? "bg-slate-100" : ""
                 }`}
               >
                 <span>
-                  <span className="font-medium text-slate-900 dark:text-white">{item.nombre}</span>
+                  <span className="font-medium text-slate-900">{item.nombre}</span>
                   {item.subtitulo && (
-                    <span className="ml-2 text-xs text-slate-500 dark:text-slate-400">{item.subtitulo}</span>
+                    <span className="ml-2 text-xs text-slate-500">{item.subtitulo}</span>
                   )}
                 </span>
-                <span className="shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-500 dark:bg-slate-800 dark:text-slate-400">
+                <span className="shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-500">
                   {item.tipo}
                 </span>
               </li>
