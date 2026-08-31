@@ -28,6 +28,10 @@ const nextConfig: NextConfig = {
         hostname: "*.supabase.co",
       },
     ],
+    // AVIF primero (mejor compresión, decae a WebP si el navegador no lo
+    // soporta) -- clave para cargar rápido en datos móviles con ~40+
+    // imágenes por página (módulos, comité, sedes, patrocinadores).
+    formats: ["image/avif", "image/webp"],
   },
   async headers() {
     return [

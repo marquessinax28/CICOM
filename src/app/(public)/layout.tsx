@@ -1,13 +1,16 @@
+import { Header } from "@/components/Header";
+import { Footer } from "@/components/Footer";
+
 export default function PublicLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
   return (
-    <>
-      <header>{/* nav pública, pendiente de Fase 2 */}</header>
-      <main>{children}</main>
-      <footer>{/* pendiente de Fase 2 */}</footer>
-    </>
+    <div className="flex min-h-dvh flex-col">
+      <Header />
+      <main className="flex-1">{children}</main>
+      <Footer />
+    </div>
   );
 }
