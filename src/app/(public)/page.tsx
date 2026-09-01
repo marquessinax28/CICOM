@@ -32,7 +32,6 @@ export default async function HomePage() {
     getPatrocinadores(),
   ]);
 
-  const modulosDestacados = modulos.slice(0, 8);
   const homenajeadoBio = edicion?.homenajeado_bio ? extracto(edicion.homenajeado_bio) : null;
 
   return (
@@ -129,12 +128,12 @@ export default async function HomePage() {
 
       {/* Módulos */}
       <Section title="Módulos">
-        {modulosDestacados.length === 0 ? (
+        {modulos.length === 0 ? (
           <EstadoVacio texto="Los módulos se publicarán próximamente." />
         ) : (
           <>
             <ModulosCarousel
-              items={modulosDestacados.map((modulo) => ({
+              items={modulos.map((modulo) => ({
                 id: modulo.id,
                 nombre: modulo.nombre,
                 subtitulo: modulo.especialidad !== modulo.nombre ? modulo.especialidad : null,
@@ -142,14 +141,12 @@ export default async function HomePage() {
                 icono: modulo.icono_url,
               }))}
             />
-            {modulos.length > modulosDestacados.length && (
-              <Link
-                href="/programas"
-                className="mt-6 inline-block text-sm font-medium text-dorado underline underline-offset-4"
-              >
-                Ver los {modulos.length} módulos
-              </Link>
-            )}
+            <Link
+              href="/programas#modulos"
+              className="mt-6 inline-block text-sm font-medium text-dorado underline underline-offset-4"
+            >
+              Ver los {modulos.length} módulos en lista
+            </Link>
           </>
         )}
       </Section>

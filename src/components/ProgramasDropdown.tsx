@@ -1,10 +1,23 @@
+"use client";
+
 import Link from "next/link";
+import type { MouseEvent } from "react";
 
 const ITEMS = [
   { href: "/programas", label: "Programa Académico General" },
   { href: "/programas#modulos", label: "Módulos" },
   { href: "/programas#cursos-talleres", label: "Cursos y talleres" },
 ];
+
+// El header no se vuelve a montar al navegar (Link es client-side), así que
+// el <a> que se clickeó se queda con el foco del navegador aunque el mouse
+// ya no esté encima -- y como el menú usa :focus-within para mantenerse
+// abierto en teclado, se quedaba abierto después de cada clic hasta que
+// alguien enfocaba otra cosa. Quitarle el foco al hacer clic deja que solo
+// :hover decida si sigue abierto (se cierra en cuanto el cursor se va).
+function quitarFoco(e: MouseEvent<HTMLAnchorElement>) {
+  e.currentTarget.blur();
+}
 
 export function ProgramasDropdown() {
   return (
@@ -34,6 +47,7 @@ export function ProgramasDropdown() {
           <Link
             key={`${item.href}-${i}`}
             href={item.href}
+            onClick={quitarFoco}
             className="rounded-md px-3 py-2.5 text-sm font-medium text-slate-200 hover:bg-white/10 hover:text-dorado"
           >
             {item.label}
