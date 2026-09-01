@@ -23,19 +23,19 @@ export default async function ConcursosPage() {
           Los concursos se publicarán próximamente.
         </p>
       ) : (
-        <div className="mt-8 grid gap-4 sm:grid-cols-3">
+        <div className="mt-10 grid gap-x-6 gap-y-12 sm:grid-cols-3">
           {concursos.map((concurso) => (
             <Link
               key={concurso.id}
               href={`/concursos/${concurso.slug}`}
-              className="rounded-xl border border-white/10 bg-white/5 p-5 transition-colors hover:border-dorado/40"
+              className="group flex flex-col items-center text-center"
             >
-              <div className="relative mb-3 h-10 w-10 overflow-hidden rounded-lg">
-                <PlaceholderImage src={concurso.icono_url} alt="" sizes="40px" />
+              <div className="relative mb-5 h-28 w-28 overflow-hidden rounded-2xl transition-transform group-hover:scale-105 sm:h-32 sm:w-32">
+                <PlaceholderImage src={concurso.icono_url} alt="" sizes="128px" />
               </div>
-              <h2 className="font-semibold text-white">{concurso.nombre}</h2>
+              <h2 className="text-xl font-bold text-white sm:text-2xl">{concurso.nombre}</h2>
               {concurso.categoria_tags && concurso.categoria_tags.length > 0 && (
-                <div className="mt-2 flex flex-wrap gap-1.5">
+                <div className="mt-2 flex flex-wrap justify-center gap-1.5">
                   {concurso.categoria_tags.map((tag) => (
                     <span
                       key={tag}

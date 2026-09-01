@@ -100,21 +100,20 @@ export function ModulosCarousel({ items }: { items: ModuloCarrusel[] }) {
 function TarjetaModulo({ nombre, subtitulo, href, icono }: ModuloCarrusel) {
   const contenido = (
     <>
-      <div className="relative mx-auto mb-4 h-14 w-14 overflow-hidden rounded-xl">
-        <PlaceholderImage src={icono ?? null} alt="" sizes="56px" />
+      <div className="relative mx-auto mb-5 h-28 w-28 overflow-hidden rounded-2xl transition-transform group-hover:scale-105 sm:h-32 sm:w-32">
+        <PlaceholderImage src={icono ?? null} alt="" sizes="128px" />
       </div>
-      <h3 className="font-semibold text-white">{nombre}</h3>
+      <h3 className="text-xl font-bold text-white sm:text-2xl">{nombre}</h3>
       {subtitulo && <p className="mt-1 text-sm text-slate-400">{subtitulo}</p>}
       {!href && <p className="mt-2 text-xs italic text-slate-500">Archivo próximamente</p>}
     </>
   );
 
-  const clases =
-    "flex h-full flex-col items-center rounded-2xl border border-white/10 bg-white/5 p-6 text-center transition-colors";
+  const clases = "group flex h-full flex-col items-center text-center";
 
   if (href) {
     return (
-      <a href={href} target="_blank" rel="noopener noreferrer" className={`${clases} hover:border-dorado/40`}>
+      <a href={href} target="_blank" rel="noopener noreferrer" className={clases}>
         {contenido}
       </a>
     );

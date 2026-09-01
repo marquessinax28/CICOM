@@ -196,12 +196,14 @@ async function main() {
     lema: eslogan,
     fecha_inicio: "2026-11-23",
     fecha_fin: "2026-11-27",
+    homenajeado_nombre: "DR. HÉCTOR ENRIQUE MONTES MUÑOZ",
     homenajeado_foto_home_url: existsSync(fotoHomeHomenajeado)
       ? await subirImagen(supabase, fotoHomeHomenajeado, "ediciones/homenajeado-home.jpg")
       : undefined,
     homenajeado_foto_subpagina_url: existsSync(fotoSubpaginaHomenajeado)
       ? await subirImagen(supabase, fotoSubpaginaHomenajeado, "ediciones/homenajeado-subpagina.jpg")
       : undefined,
+    bienvenida_autor_nombre: "DR. DIEGO ARMANDO CASTELLANOS HORTA",
   });
   console.log("✓ Edición actual (número, nombre, lema y fotos de homenajeado)");
 
@@ -278,10 +280,7 @@ async function main() {
   console.log("\n--- Reporte de contenido faltante ---");
   console.log(`Módulos sin ícono (${reporte.modulosSinFoto.length}):`, reporte.modulosSinFoto);
   console.log(`Comité sin foto (${reporte.comiteSinFoto.length}):`, reporte.comiteSinFoto);
-  console.log(
-    "Homenajeado: hay fotos pero ningún nombre en el material -- home no lo muestra hasta tener uno."
-  );
-  console.log("Mensaje de bienvenida: sin autor ni texto -- home no lo muestra todavía.");
+  console.log("Mensaje de bienvenida: falta el texto del mensaje -- home muestra el autor.");
   console.log("Sedes, patrocinadores, cursos y talleres: sin contenido todavía.");
 }
 

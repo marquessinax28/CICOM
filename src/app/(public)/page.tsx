@@ -1,14 +1,15 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import { getEdicionActual } from "@/lib/queries/ediciones";
 import { getModulos } from "@/lib/queries/modulos";
 import { getConcursos } from "@/lib/queries/concursos";
 import { getCursosTalleres } from "@/lib/queries/cursos-talleres";
-import { getSedes } from "@/lib/queries/sedes";
 import { getPatrocinadores } from "@/lib/queries/patrocinadores";
 import { PlaceholderImage } from "@/components/PlaceholderImage";
 import { ModulosCarousel } from "@/components/ModulosCarousel";
 import { EstadoCongreso } from "@/components/EstadoCongreso";
+import { SedesCarousel } from "@/components/SedesCarousel";
 
 export const metadata: Metadata = {
   description:
@@ -23,12 +24,11 @@ function extracto(texto: string, largo = LARGO_EXTRACTO): { corto: string; trunc
 }
 
 export default async function HomePage() {
-  const [edicion, modulos, concursos, cursosTalleres, sedes, patrocinadores] = await Promise.all([
+  const [edicion, modulos, concursos, cursosTalleres, patrocinadores] = await Promise.all([
     getEdicionActual(),
     getModulos(),
     getConcursos(),
     getCursosTalleres(),
-    getSedes(),
     getPatrocinadores(),
   ]);
 
@@ -38,8 +38,23 @@ export default async function HomePage() {
   return (
     <div>
       {/* Hero: edición, fechas, estado, lema */}
-      <section className="border-b border-white/10 bg-navy text-white">
-        <div className="mx-auto max-w-6xl px-4 py-16 sm:py-24">
+      <section className="relative overflow-hidden border-b border-white/10 bg-navy text-white">
+        {/* Sin `fill`: Next.js posiciona ese modo con un atributo style inline
+            (position/height/width), que nuestra CSP bloquea a propósito (sin
+            unsafe-inline). Ancho/alto explícitos + clases de Tailwind logran
+            el mismo "cubre todo el hero" sin depender de estilo inline. */}
+        <Image
+          src="/hero-mural.jpg"
+          alt=""
+          aria-hidden="true"
+          width={2400}
+          height={2839}
+          priority
+          sizes="100vw"
+          className="absolute inset-0 h-full w-full object-cover object-center md:object-[50%_20%]"
+        />
+        <div className="absolute inset-0 bg-gradient-to-b from-navy/90 via-navy/80 to-navy/95" />
+        <div className="relative mx-auto max-w-6xl px-4 py-16 sm:py-24">
           <h1 className="text-3xl font-bold tracking-tight sm:text-5xl">
             {edicion?.nombre ?? "CICOM — Ciclo de Conferencias Médicas"}
           </h1>
@@ -69,12 +84,13 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* Profesor(a) homenajeado(a) */}
+      {/* Profesor homenajeado */}
       <SplitFeature
-        titulo="Profesor(a) homenajeado(a)"
+        titulo="Profesor homenajeado"
         subtitulo={edicion?.homenajeado_nombre ?? "Por anunciar"}
         imagenSrc={edicion?.homenajeado_foto_home_url ?? null}
-        imagenAlt={edicion?.homenajeado_nombre ?? "Profesor(a) homenajeado(a)"}
+        imagenAlt={edicion?.homenajeado_nombre ?? "Profesor homenajeado"}
+        grande
       >
         <p>{homenajeadoBio ? homenajeadoBio.corto : "Biografía próximamente."}</p>
         <Link
@@ -92,6 +108,7 @@ export default async function HomePage() {
         imagenSrc={edicion?.bienvenida_autor_foto_url ?? null}
         imagenAlt={edicion?.bienvenida_autor_nombre ?? "Mensaje de bienvenida"}
         invertido
+        grande
       >
         {edicion?.bienvenida_mensaje ? (
           <details>
@@ -142,17 +159,17 @@ export default async function HomePage() {
         {concursos.length === 0 ? (
           <EstadoVacio texto="Los concursos se publicarán próximamente." />
         ) : (
-          <div className="grid gap-4 sm:grid-cols-3">
+          <div className="grid gap-x-6 gap-y-10 sm:grid-cols-3">
             {concursos.map((concurso) => (
               <Link
                 key={concurso.id}
                 href={`/concursos/${concurso.slug}`}
-                className="flex flex-col items-center rounded-2xl border border-white/10 bg-white/5 p-6 text-center transition-colors hover:border-dorado/40"
+                className="group flex flex-col items-center text-center"
               >
-                <div className="relative mb-4 h-14 w-14 overflow-hidden rounded-xl">
-                  <PlaceholderImage src={concurso.icono_url} alt="" sizes="56px" />
+                <div className="relative mb-5 h-28 w-28 overflow-hidden rounded-2xl transition-transform group-hover:scale-105 sm:h-32 sm:w-32">
+                  <PlaceholderImage src={concurso.icono_url} alt="" sizes="128px" />
                 </div>
-                <h3 className="font-semibold text-white">{concurso.nombre}</h3>
+                <h3 className="text-xl font-bold text-white sm:text-2xl">{concurso.nombre}</h3>
                 {concurso.categoria_tags && concurso.categoria_tags.length > 0 && (
                   <div className="mt-2 flex flex-wrap justify-center gap-1.5">
                     {concurso.categoria_tags.map((tag) => (
@@ -194,35 +211,8 @@ export default async function HomePage() {
         )}
       </Section>
 
-      {/* Sedes */}
-      <Section title="Sedes" tono="alterno">
-        {sedes.length === 0 ? (
-          <EstadoVacio texto="Las sedes se publicarán próximamente." />
-        ) : (
-          <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-4">
-            {sedes.map((sede) => (
-              <div key={sede.id} className="overflow-hidden rounded-xl border border-white/10 bg-white/5">
-                <div className="relative aspect-video">
-                  <PlaceholderImage
-                    src={sede.imagen_url}
-                    alt={sede.nombre}
-                    sizes="(min-width: 768px) 25vw, (min-width: 640px) 50vw, 100vw"
-                  />
-                </div>
-                <div className="p-4">
-                  <h3 className="font-semibold text-white">{sede.nombre}</h3>
-                  {sede.direccion && (
-                    <p className="mt-1 text-sm text-slate-300">{sede.direccion}</p>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </Section>
-
       {/* Patrocinadores */}
-      <Section title="Patrocinadores">
+      <Section title="Patrocinadores" tono="alterno">
         {patrocinadores.length === 0 ? (
           <EstadoVacio texto="Los patrocinadores se anunciarán próximamente." />
         ) : (
@@ -252,6 +242,12 @@ export default async function HomePage() {
           </div>
         )}
       </Section>
+
+      {/* Sedes: carrusel de borde a borde, sin título ni contenedor
+          centrado -- las fotos ocupan toda la sección. */}
+      <section id="sedes" className="scroll-mt-24">
+        <SedesCarousel />
+      </section>
     </div>
   );
 }
@@ -262,6 +258,7 @@ function SplitFeature({
   imagenSrc,
   imagenAlt,
   invertido = false,
+  grande = false,
   children,
 }: {
   titulo: string;
@@ -269,6 +266,9 @@ function SplitFeature({
   imagenSrc: string | null;
   imagenAlt: string;
   invertido?: boolean;
+  // +30% sobre el tamaño base, a petición explícita: text-3xl/text-4xl
+  // (1.875rem/2.25rem) y el subtítulo (1rem) escalados x1.3.
+  grande?: boolean;
   children: React.ReactNode;
 }) {
   return (
@@ -278,8 +278,14 @@ function SplitFeature({
           invertido ? "md:order-2" : ""
         }`}
       >
-        <h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">{titulo}</h2>
-        <p className="mt-2 font-medium text-dorado">{subtitulo}</p>
+        <h2
+          className={`font-bold tracking-tight text-white ${
+            grande ? "text-[2.4375rem] sm:text-[2.925rem]" : "text-3xl sm:text-4xl"
+          }`}
+        >
+          {titulo}
+        </h2>
+        <p className={`mt-2 font-medium text-dorado ${grande ? "text-[1.3rem]" : ""}`}>{subtitulo}</p>
         <div className="mt-4 max-w-xl text-slate-300">{children}</div>
       </div>
       <div className={`relative min-h-72 md:min-h-[28rem] ${invertido ? "md:order-1" : ""}`}>
@@ -292,14 +298,19 @@ function SplitFeature({
 function Section({
   title,
   tono = "base",
+  id,
   children,
 }: {
   title: string;
   tono?: "base" | "alterno";
+  id?: string;
   children: React.ReactNode;
 }) {
   return (
-    <section className={tono === "alterno" ? "border-y border-white/10 bg-navy-light" : ""}>
+    <section
+      id={id}
+      className={`${id ? "scroll-mt-24" : ""} ${tono === "alterno" ? "border-y border-white/10 bg-navy-light" : ""}`}
+    >
       <div className="mx-auto max-w-6xl px-4 py-12">
         <h2 className="mb-6 text-2xl font-bold tracking-tight text-white">{title}</h2>
         {children}

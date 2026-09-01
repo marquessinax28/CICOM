@@ -1,13 +1,12 @@
 import Image from "next/image";
 import Link from "next/link";
 import { MobileNav } from "@/components/MobileNav";
+import { ProgramasDropdown } from "@/components/ProgramasDropdown";
 
 const ENLACES = [
-  { href: "/programas", label: "Programas" },
   { href: "/concursos", label: "Concursos" },
-  { href: "/sedes", label: "Sedes" },
+  { href: "/#sedes", label: "Sedes" },
   { href: "/historico", label: "Histórico" },
-  { href: "/contacto", label: "Contacto" },
 ];
 
 export function Header() {
@@ -37,6 +36,7 @@ export function Header() {
         </Link>
 
         <nav className="ml-10 hidden flex-1 items-center justify-between text-base font-semibold text-slate-300 md:flex lg:ml-16">
+          <ProgramasDropdown />
           {ENLACES.map((enlace) => (
             <Link
               key={enlace.href}
@@ -47,6 +47,21 @@ export function Header() {
             </Link>
           ))}
         </nav>
+
+        <div className="hidden shrink-0 items-center gap-3 md:flex">
+          <Link
+            href="/activar-boleto"
+            className="whitespace-nowrap rounded-full border border-white/25 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:border-dorado hover:text-dorado"
+          >
+            Activar boleto
+          </Link>
+          <Link
+            href="/comprar-boleto"
+            className="whitespace-nowrap rounded-full bg-dorado px-5 py-2.5 text-sm font-semibold text-navy transition-opacity hover:opacity-90"
+          >
+            Comprar boleto
+          </Link>
+        </div>
 
         <MobileNav />
       </div>

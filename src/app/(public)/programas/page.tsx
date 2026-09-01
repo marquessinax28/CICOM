@@ -56,36 +56,35 @@ export default async function ProgramasPage() {
         <ProgramasBuscador items={items} />
       </div>
 
-      <section className="mt-10">
+      <section id="modulos" className="mt-10 scroll-mt-24">
         <h2 className="text-xl font-semibold text-white">Módulos ({modulos.length})</h2>
-        <ul className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
+        <ul className="mt-6 grid grid-cols-2 gap-x-6 gap-y-10 sm:grid-cols-3 md:grid-cols-4">
           {modulos.map((modulo) => (
-            <li key={modulo.id} id={`modulo-${modulo.id}`} className="scroll-mt-24 rounded-xl transition-shadow">
+            <li
+              key={modulo.id}
+              id={`modulo-${modulo.id}`}
+              className="scroll-mt-24 flex flex-col items-center text-center"
+            >
               {modulo.archivo_pdf_url ? (
-                <a
-                  href={modulo.archivo_pdf_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="block rounded-xl border border-white/10 bg-white/5 p-4 hover:border-dorado/40"
-                >
-                  <div className="relative mb-3 h-10 w-10 overflow-hidden rounded-lg">
-                    <PlaceholderImage src={modulo.icono_url} alt="" sizes="40px" />
+                <a href={modulo.archivo_pdf_url} target="_blank" rel="noopener noreferrer" className="group flex flex-col items-center">
+                  <div className="relative mb-4 h-24 w-24 overflow-hidden rounded-2xl transition-transform group-hover:scale-105 sm:h-28 sm:w-28">
+                    <PlaceholderImage src={modulo.icono_url} alt="" sizes="112px" />
                   </div>
-                  <p className="text-sm font-semibold leading-snug text-white">{modulo.nombre}</p>
+                  <p className="text-lg font-bold leading-snug text-white">{modulo.nombre}</p>
                   {modulo.especialidad && modulo.especialidad !== modulo.nombre && (
-                    <p className="mt-1 text-xs text-slate-400">
+                    <p className="mt-1 text-sm text-slate-400">
                       {modulo.especialidad}
                     </p>
                   )}
                 </a>
               ) : (
-                <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-                  <div className="relative mb-3 h-10 w-10 overflow-hidden rounded-lg">
-                    <PlaceholderImage src={modulo.icono_url} alt="" sizes="40px" />
+                <div className="group flex flex-col items-center">
+                  <div className="relative mb-4 h-24 w-24 overflow-hidden rounded-2xl transition-transform group-hover:scale-105 sm:h-28 sm:w-28">
+                    <PlaceholderImage src={modulo.icono_url} alt="" sizes="112px" />
                   </div>
-                  <p className="text-sm font-semibold leading-snug text-white">{modulo.nombre}</p>
+                  <p className="text-lg font-bold leading-snug text-white">{modulo.nombre}</p>
                   {modulo.especialidad && modulo.especialidad !== modulo.nombre && (
-                    <p className="mt-1 text-xs text-slate-400">
+                    <p className="mt-1 text-sm text-slate-400">
                       {modulo.especialidad}
                     </p>
                   )}
@@ -99,7 +98,7 @@ export default async function ProgramasPage() {
         </ul>
       </section>
 
-      <section className="mt-12">
+      <section id="cursos-talleres" className="mt-12 scroll-mt-24">
         <h2 className="text-xl font-semibold text-white">Cursos y talleres</h2>
         {cursosTalleres.length === 0 ? (
           <p className="mt-4 rounded-xl border border-dashed border-white/20 p-8 text-center text-sm text-slate-400">
