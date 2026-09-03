@@ -5,8 +5,9 @@
 // /api/comprar/crear-checkout-session no tiene NINGÚN campo de precio en su
 // schema (src/lib/validation/comprar.ts) -- el precio se calcula siempre
 // desde precios_boleto. Esta prueba comprueba las dos caras de esa regla:
-// 1) un campo ajeno como "precioCentavos" hace que la petición completa se
-//    rechace (schema .strict()), nunca que se "use con cuidado".
+// 1) un campo ajeno como "precioCentavos" (o "cantidad" -- un boleto por
+//    compra, sin excepción) hace que la petición completa se rechace
+//    (schema .strict()), nunca que se "use con cuidado".
 // 2) una petición legítima crea una orden cuyo monto en base de datos
 //    coincide exactamente con precios_boleto, sin importar qué tan barato
 //    "pida" el cliente.
@@ -74,19 +75,20 @@ describe("Fase 4 — prueba 3: el precio del servidor prevalece", () => {
     await limpiarDatosDePrueba(correo);
   });
 
-  it("rechaza por completo un cuerpo con un campo de precio/rol ajeno al schema", async () => {
+  it("rechaza por completo un cuerpo con un campo de precio/rol/cantidad ajeno al schema", async () => {
     const respuesta = await POST(
       requestJson({
         sesionToken,
         categoria: "general",
-        cantidad: 1,
         turnstileToken: "token-de-prueba",
         // Campos que un atacante intentaría colar: ninguno existe en el
         // schema -- .strict() debe tirar toda la petición, no solo ignorar
-        // estos campos en silencio.
+        // estos campos en silencio. cantidad tampoco existe: un boleto
+        // digital por compra, sin excepción (decisión del comité).
         precioCentavos: 1,
         monto_total: 0.01,
         esAdmin: true,
+        cantidad: 5,
       })
     );
 
@@ -102,31 +104,27 @@ describe("Fase 4 — prueba 3: el precio del servidor prevalece", () => {
   });
 
   it("cobra el precio de precios_boleto, no lo que sugiera el cliente", async () => {
-    const cantidad = 2;
-
     const respuesta = await POST(
       requestJson({
         sesionToken,
         categoria: "general",
-        cantidad,
         turnstileToken: "token-de-prueba",
       })
     );
 
     expect(respuesta.status).toBe(200);
     const cuerpo = await respuesta.json();
-    expect(cuerpo.montoTotalCentavos).toBe(precioVigenteCentavos * cantidad);
+    expect(cuerpo.montoTotalCentavos).toBe(precioVigenteCentavos);
 
     const supabase = createServiceRoleClient();
     const { data: orden } = await supabase
       .from("ordenes_compra")
-      .select("precio_unitario_centavos, monto_total, cantidad_boletos, estado")
+      .select("precio_unitario_centavos, monto_total, estado")
       .eq("correo_comprador", correo)
       .single();
 
     expect(orden!.precio_unitario_centavos).toBe(precioVigenteCentavos);
-    expect(Number(orden!.monto_total)).toBeCloseTo((precioVigenteCentavos * cantidad) / 100, 2);
-    expect(orden!.cantidad_boletos).toBe(cantidad);
+    expect(Number(orden!.monto_total)).toBeCloseTo(precioVigenteCentavos / 100, 2);
     expect(orden!.estado).toBe("pendiente");
   });
 });

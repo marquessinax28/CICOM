@@ -9,7 +9,12 @@ import { TurnstileWidget } from "@/components/TurnstileWidget";
 
 type Paso = "correo" | "codigo" | "seleccion" | "pago";
 
-type Precio = { categoria: string; precio_centavos: number; moneda: string };
+type Precio = {
+  categoria: string;
+  precio_centavos: number;
+  moneda: string;
+  vigente_hasta: string | null;
+};
 
 const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
 const STRIPE_PUBLISHABLE_KEY = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
@@ -21,6 +26,21 @@ function formatearPrecio(centavos: number, moneda: string) {
     style: "currency",
     currency: moneda.toUpperCase(),
   }).format(centavos / 100);
+}
+
+// vigente_hasta llega como columna `date` de Postgres (YYYY-MM-DD, sin
+// hora). new Date("2026-09-30") se interpretaría como medianoche UTC, y en
+// el navegador de alguien en Guadalajara (UTC-6) Intl.DateTimeFormat podría
+// mostrar "29 de septiembre" -- el mismo corrimiento que ya se corrigió del
+// lado del servidor en hoyISO(). Se arma la fecha como fecha LOCAL a mano
+// para evitar ese corrimiento también aquí.
+function formatearFecha(fechaISO: string): string {
+  const partes = fechaISO.split("-");
+  const anio = Number(partes[0]);
+  const mes = Number(partes[1]);
+  const dia = Number(partes[2]);
+  const fecha = new Date(anio, mes - 1, dia);
+  return new Intl.DateTimeFormat("es-MX", { day: "numeric", month: "long" }).format(fecha);
 }
 
 function WidgetTurnstile({ onToken }: { onToken: (token: string) => void }) {
@@ -39,8 +59,6 @@ export function CompraBoletoForm() {
   const [correo, setCorreo] = useState("");
   const [sesionToken, setSesionToken] = useState("");
   const [precios, setPrecios] = useState<Precio[]>([]);
-  const [categoria, setCategoria] = useState("general");
-  const [cantidad, setCantidad] = useState(1);
   const [clientSecret, setClientSecret] = useState("");
   const [enviando, setEnviando] = useState(false);
   const [mensajeError, setMensajeError] = useState<string | null>(null);
@@ -63,6 +81,11 @@ export function CompraBoletoForm() {
     setTurnstileToken("");
     setPaso(siguiente);
   }
+
+  // Un boleto digital por compra, sin selector de categoría: el precio que
+  // se muestra es el mismo que se manda a cobrar (misma fila de
+  // /api/comprar/precios), para que nunca puedan desincronizarse.
+  const precioVigente = precios[0];
 
   async function onSolicitarCodigo(evento: React.FormEvent<HTMLFormElement>) {
     evento.preventDefault();
@@ -140,8 +163,7 @@ export function CompraBoletoForm() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         sesionToken,
-        categoria,
-        cantidad,
+        categoria: precioVigente?.categoria ?? "general",
         turnstileToken,
       }),
     });
@@ -246,45 +268,32 @@ export function CompraBoletoForm() {
 
       {paso === "seleccion" && (
         <form onSubmit={onCrearCheckout} className="flex flex-col gap-4">
-          <div>
-            <label htmlFor="categoria" className="block text-sm font-medium text-slate-200">
-              Categoría
-            </label>
-            <select
-              id="categoria"
-              value={categoria}
-              onChange={(e) => setCategoria(e.target.value)}
-              className="mt-1.5 w-full rounded-lg border border-white/20 bg-white/5 px-4 py-2.5 text-base text-white focus:border-dorado focus:outline-none"
-            >
-              {precios.length === 0 && <option value="general">Cargando...</option>}
-              {precios.map((p) => (
-                <option key={p.categoria} value={p.categoria} className="bg-navy">
-                  {p.categoria} — {formatearPrecio(p.precio_centavos, p.moneda)}
-                </option>
-              ))}
-            </select>
+          <div className="rounded-lg border border-white/20 bg-white/5 px-4 py-3">
+            <p className="text-sm font-medium text-slate-200">Boleto digital</p>
+            {precioVigente ? (
+              <>
+                <p className="mt-1 text-2xl font-semibold text-white">
+                  {formatearPrecio(precioVigente.precio_centavos, precioVigente.moneda)}
+                </p>
+                <p className="mt-1 text-xs text-slate-400">
+                  {precioVigente.vigente_hasta
+                    ? `Precio vigente hasta el ${formatearFecha(precioVigente.vigente_hasta)}.`
+                    : "Precio vigente hasta nuevo aviso."}
+                </p>
+              </>
+            ) : (
+              <p className="mt-1 text-sm text-slate-400">Cargando precio...</p>
+            )}
           </div>
-          <div>
-            <label htmlFor="cantidad" className="block text-sm font-medium text-slate-200">
-              Cantidad de boletos
-            </label>
-            <input
-              id="cantidad"
-              type="number"
-              min={1}
-              max={10}
-              value={cantidad}
-              onChange={(e) => setCantidad(Number(e.target.value))}
-              className="mt-1.5 w-full rounded-lg border border-white/20 bg-white/5 px-4 py-2.5 text-base text-white focus:border-dorado focus:outline-none"
-            />
-          </div>
+          <p className="text-xs text-slate-400">
+            Un boleto por compra, a nombre de <span className="text-slate-300">{correo}</span>. Si
+            quieres varios, repite la compra con cada correo.
+          </p>
           <WidgetTurnstile onToken={setTurnstileToken} />
           {mensajeError && <FormAlert tipo="error" mensaje={mensajeError} incidentId={incidentId} />}
           <button
             type="submit"
-            disabled={
-              enviando || precios.length === 0 || (Boolean(TURNSTILE_SITE_KEY) && !turnstileToken)
-            }
+            disabled={enviando || !precioVigente || (Boolean(TURNSTILE_SITE_KEY) && !turnstileToken)}
             className="self-start rounded-lg bg-dorado px-6 py-2.5 text-sm font-semibold text-navy disabled:opacity-60"
           >
             {enviando ? "Preparando pago..." : "Continuar al pago"}

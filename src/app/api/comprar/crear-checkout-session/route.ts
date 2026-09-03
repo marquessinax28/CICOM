@@ -29,15 +29,16 @@ export async function POST(request: Request) {
   }
 
   // .strict() del schema ya rechaza cualquier campo que no sea sesionToken,
-  // categoria o cantidad -- en particular, no existe (ni existirá nunca) un
-  // campo de precio/monto que el cliente pueda mandar. El monto a cobrar se
-  // calcula abajo, entero, a partir de precios_boleto.
+  // categoria o turnstileToken -- en particular, no existe (ni existirá
+  // nunca) un campo de precio/monto ni de cantidad que el cliente pueda
+  // mandar. El monto a cobrar se calcula abajo a partir de precios_boleto;
+  // la cantidad es siempre 1 (un boleto digital por compra).
   const parsed = crearCheckoutSchema.safeParse(body);
   if (!parsed.success) {
     return errorEsperado(400, "Datos de compra inválidos.");
   }
 
-  const { sesionToken, categoria, cantidad, turnstileToken } = parsed.data;
+  const { sesionToken, categoria, turnstileToken } = parsed.data;
 
   const turnstileOk = await verifyTurnstile(turnstileToken, ip);
   if (!turnstileOk) {
@@ -99,7 +100,6 @@ export async function POST(request: Request) {
       supabase.rpc("fn_reservar_orden_digital", {
         p_nombre: correo,
         p_correo: correo,
-        p_cantidad: cantidad,
         p_categoria: categoria,
         p_precio_unitario_centavos: precio.precio_centavos,
       })
@@ -115,7 +115,7 @@ export async function POST(request: Request) {
     return errorInesperado(500, error);
   }
 
-  const montoTotalCentavos = precio.precio_centavos * cantidad;
+  const montoTotalCentavos = precio.precio_centavos;
 
   try {
     const stripe = getStripe();
@@ -124,7 +124,7 @@ export async function POST(request: Request) {
       currency: "mxn",
       receipt_email: correo,
       automatic_payment_methods: { enabled: true },
-      metadata: { orden_id: String(ordenId), categoria, cantidad: String(cantidad) },
+      metadata: { orden_id: String(ordenId), categoria },
     });
 
     await consultarConReintento(() =>

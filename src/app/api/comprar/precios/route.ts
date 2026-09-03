@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createServiceRoleClient } from "@/lib/supabase/server";
+import { consultarConReintento } from "@/lib/supabase/retry";
 import { errorInesperado } from "@/lib/api-errors";
 import { hoyISO } from "@/lib/precios";
 
@@ -14,16 +15,19 @@ export async function GET() {
   const supabase = createServiceRoleClient();
   const hoy = hoyISO();
 
-  const { data, error } = await supabase
-    .from("precios_boleto")
-    .select("categoria, precio_centavos, moneda")
-    .eq("tipo_boleto", "digital")
-    .eq("activo", true)
-    .lte("vigente_desde", hoy)
-    .or(`vigente_hasta.is.null,vigente_hasta.gte.${hoy}`)
-    .order("categoria", { ascending: true });
-
-  if (error) {
+  let data;
+  try {
+    data = await consultarConReintento(() =>
+      supabase
+        .from("precios_boleto")
+        .select("categoria, precio_centavos, moneda, vigente_hasta")
+        .eq("tipo_boleto", "digital")
+        .eq("activo", true)
+        .lte("vigente_desde", hoy)
+        .or(`vigente_hasta.is.null,vigente_hasta.gte.${hoy}`)
+        .order("categoria", { ascending: true })
+    );
+  } catch (error) {
     return errorInesperado(500, error);
   }
 

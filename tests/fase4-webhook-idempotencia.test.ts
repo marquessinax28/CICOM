@@ -37,7 +37,6 @@ describe("Fase 4 — prueba 6: mismo event.id de webhook dos veces", () => {
         nombre_comprador: correo,
         correo_comprador: correo,
         monto_total: montoCentavos / 100,
-        cantidad_boletos: 1,
         estado: "pendiente",
         categoria: "general",
         precio_unitario_centavos: montoCentavos,
