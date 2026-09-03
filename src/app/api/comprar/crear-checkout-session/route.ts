@@ -7,6 +7,7 @@ import { getClientIp } from "@/lib/request-ip";
 import { errorEsperado, errorInesperado } from "@/lib/api-errors";
 import { hashTokenSesionCompra } from "@/lib/hash";
 import { getStripe } from "@/lib/stripe";
+import { hoyISO } from "@/lib/precios";
 
 export async function POST(request: Request) {
   const ip = getClientIp(request);
@@ -63,12 +64,19 @@ export async function POST(request: Request) {
 
   const correo = sesion.correo;
 
+  // Precio por tramos de fecha (septiembre $550, octubre $650, noviembre
+  // $700 MXN, parametrizado en precios_boleto -- nunca fijo en código). El
+  // tramo se resuelve con la fecha de HOY en el servidor, nunca con nada
+  // que mande el cliente.
+  const hoy = hoyISO();
   const { data: precio, error: precioError } = await supabase
     .from("precios_boleto")
     .select("precio_centavos")
     .eq("tipo_boleto", "digital")
     .eq("categoria", categoria)
     .eq("activo", true)
+    .lte("vigente_desde", hoy)
+    .or(`vigente_hasta.is.null,vigente_hasta.gte.${hoy}`)
     .maybeSingle();
 
   if (precioError) {

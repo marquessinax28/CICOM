@@ -22,6 +22,7 @@ vi.mock("@/lib/turnstile", () => ({
 
 import { POST } from "@/app/api/comprar/crear-checkout-session/route";
 import { createServiceRoleClient } from "@/lib/supabase/server";
+import { hoyISO } from "@/lib/precios";
 import {
   correoDePrueba,
   crearSesionCompraDePrueba,
@@ -46,13 +47,20 @@ describe("Fase 4 — prueba 3: el precio del servidor prevalece", () => {
     correo = correoDePrueba("precio");
     sesionToken = await crearSesionCompraDePrueba(correo);
 
+    // Mismo criterio de vigencia que /api/comprar/crear-checkout-session
+    // (precio por tramos de fecha: sep $550 / oct $650 / nov $700 MXN) --
+    // esta prueba no asume un precio fijo, resuelve el tramo de HOY igual
+    // que la ruta real.
     const supabase = createServiceRoleClient();
+    const hoy = hoyISO();
     const { data } = await supabase
       .from("precios_boleto")
       .select("precio_centavos")
       .eq("tipo_boleto", "digital")
       .eq("categoria", "general")
       .eq("activo", true)
+      .lte("vigente_desde", hoy)
+      .or(`vigente_hasta.is.null,vigente_hasta.gte.${hoy}`)
       .single();
 
     precioVigenteCentavos = data!.precio_centavos;
