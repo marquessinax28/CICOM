@@ -1,5 +1,6 @@
 import "server-only";
 import { createServiceRoleClient } from "@/lib/supabase/server";
+import { consultarConReintento } from "@/lib/supabase/retry";
 
 export type Sede = {
   id: number;
@@ -10,11 +11,8 @@ export type Sede = {
 
 export async function getSedes(): Promise<Sede[]> {
   const supabase = createServiceRoleClient();
-  const { data, error } = await supabase
-    .from("sedes")
-    .select("id, nombre, direccion, imagen_url")
-    .order("nombre", { ascending: true });
-
-  if (error) throw error;
+  const data = await consultarConReintento(() =>
+    supabase.from("sedes").select("id, nombre, direccion, imagen_url").order("nombre", { ascending: true })
+  );
   return data ?? [];
 }

@@ -1,5 +1,6 @@
 import "server-only";
 import { createServiceRoleClient } from "@/lib/supabase/server";
+import { consultarConReintento } from "@/lib/supabase/retry";
 import { slugify } from "@/lib/slugify";
 
 export type Concurso = {
@@ -19,12 +20,12 @@ function conSlug<T extends { nombre: string }>(fila: T): T & { slug: string } {
 
 export async function getConcursos(): Promise<Concurso[]> {
   const supabase = createServiceRoleClient();
-  const { data, error } = await supabase
-    .from("concursos")
-    .select("id, nombre, descripcion, categoria_tags, archivo_bases_pdf, icono_url, fecha_limite")
-    .order("nombre", { ascending: true });
-
-  if (error) throw error;
+  const data = await consultarConReintento(() =>
+    supabase
+      .from("concursos")
+      .select("id, nombre, descripcion, categoria_tags, archivo_bases_pdf, icono_url, fecha_limite")
+      .order("nombre", { ascending: true })
+  );
   return (data ?? []).map(conSlug);
 }
 

@@ -1,5 +1,6 @@
 import "server-only";
 import { createServiceRoleClient } from "@/lib/supabase/server";
+import { consultarConReintento } from "@/lib/supabase/retry";
 
 export type Patrocinador = {
   id: number;
@@ -11,11 +12,8 @@ export type Patrocinador = {
 
 export async function getPatrocinadores(): Promise<Patrocinador[]> {
   const supabase = createServiceRoleClient();
-  const { data, error } = await supabase
-    .from("patrocinadores")
-    .select("id, nombre, logo_url, link_externo, nivel")
-    .order("nombre", { ascending: true });
-
-  if (error) throw error;
+  const data = await consultarConReintento(() =>
+    supabase.from("patrocinadores").select("id, nombre, logo_url, link_externo, nivel").order("nombre", { ascending: true })
+  );
   return data ?? [];
 }

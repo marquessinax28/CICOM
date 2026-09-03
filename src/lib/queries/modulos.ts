@@ -1,5 +1,6 @@
 import "server-only";
 import { createServiceRoleClient } from "@/lib/supabase/server";
+import { consultarConReintento } from "@/lib/supabase/retry";
 
 export type Modulo = {
   id: number;
@@ -28,20 +29,15 @@ export async function getModulos(filtro?: {
     query = query.eq("especialidad", filtro.especialidad);
   }
 
-  const { data, error } = await query;
-  if (error) throw error;
+  const data = await consultarConReintento(() => query);
   return data ?? [];
 }
 
 export async function getEspecialidades(): Promise<string[]> {
   const supabase = createServiceRoleClient();
-  const { data, error } = await supabase
-    .from("modulos")
-    .select("especialidad")
-    .not("especialidad", "is", null)
-    .order("especialidad", { ascending: true });
-
-  if (error) throw error;
+  const data = await consultarConReintento(() =>
+    supabase.from("modulos").select("especialidad").not("especialidad", "is", null).order("especialidad", { ascending: true })
+  );
   const unicas = new Set(
     (data ?? []).map((fila) => fila.especialidad as string)
   );

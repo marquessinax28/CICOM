@@ -1,5 +1,6 @@
 import "server-only";
 import { createServiceRoleClient } from "@/lib/supabase/server";
+import { consultarConReintento } from "@/lib/supabase/retry";
 
 export type Edicion = {
   id: number;
@@ -24,24 +25,16 @@ const COLUMNAS =
 
 export async function getEdicionActual(): Promise<Edicion | null> {
   const supabase = createServiceRoleClient();
-  const { data, error } = await supabase
-    .from("ediciones")
-    .select(COLUMNAS)
-    .eq("es_actual", true)
-    .maybeSingle();
-
-  if (error) throw error;
+  const data = await consultarConReintento(() =>
+    supabase.from("ediciones").select(COLUMNAS).eq("es_actual", true).maybeSingle()
+  );
   return data;
 }
 
 export async function getEdicionesHistoricas(): Promise<Edicion[]> {
   const supabase = createServiceRoleClient();
-  const { data, error } = await supabase
-    .from("ediciones")
-    .select(COLUMNAS)
-    .eq("es_actual", false)
-    .order("numero", { ascending: false });
-
-  if (error) throw error;
+  const data = await consultarConReintento(() =>
+    supabase.from("ediciones").select(COLUMNAS).eq("es_actual", false).order("numero", { ascending: false })
+  );
   return data ?? [];
 }
