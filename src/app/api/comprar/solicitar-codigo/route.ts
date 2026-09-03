@@ -10,6 +10,15 @@ import { enviarCodigoVerificacion } from "@/lib/resend";
 
 const EXPIRACION_MINUTOS = 10;
 
+// CLAUDE.md sección 5-quater: máximo 3 solicitudes por correo por hora --
+// ese límite es el que rige en producción, sin excepción. En desarrollo
+// local, probar el flujo completo repetidas veces contra el mismo correo
+// (el único que Resend en modo prueba deja usar) choca con ese límite en
+// minutos; se relaja SOLO cuando NODE_ENV === "development" -- Vercel
+// (preview y producción) siempre corre con NODE_ENV=production, así que
+// esto nunca se relaja fuera de una máquina de desarrollo.
+const LIMITE_SOLICITUDES_POR_CORREO = process.env.NODE_ENV === "development" ? 20 : 3;
+
 export async function POST(request: Request) {
   const ip = getClientIp(request);
 
@@ -36,10 +45,13 @@ export async function POST(request: Request) {
 
   const { correo, turnstileToken } = parsed.data;
 
-  // Límite por correo (CLAUDE.md sección 6: máximo 3 solicitudes por correo
-  // por hora) -- una botnet rota IPs, pero no puede rotar el correo que
-  // quiere verificar.
-  const rateCorreo = await checkRateLimit(`comprar:solicitar-codigo:correo:${correo}`, 3, 3600);
+  // Límite por correo (CLAUDE.md sección 6) -- una botnet rota IPs, pero no
+  // puede rotar el correo que quiere verificar.
+  const rateCorreo = await checkRateLimit(
+    `comprar:solicitar-codigo:correo:${correo}`,
+    LIMITE_SOLICITUDES_POR_CORREO,
+    3600
+  );
   if (!rateCorreo.success) {
     return NextResponse.json(
       { error: "Ya solicitaste varios códigos para este correo. Intenta de nuevo más tarde." },

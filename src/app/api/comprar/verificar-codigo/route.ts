@@ -18,6 +18,17 @@ const MAX_INTENTOS = 5;
 // incorrecto" (CLAUDE.md sección 7: mensajes no enumerables).
 const MENSAJE_GENERICO = "Código inválido o expirado. Solicita uno nuevo.";
 
+// LOGGING TEMPORAL DE DEPURACIÓN -- distingue la causa real de un rechazo
+// (turnstile inválido / código no encontrado / hash que no coincide / código
+// expirado / ya usado / intentos agotados) sin tocar el mensaje genérico que
+// ve el usuario. Nunca registra el código en claro ni el hash (CLAUDE.md
+// sección 7): solo el correo (para correlacionar la prueba) y el motivo.
+// Quitar o poner detrás de una bandera de entorno antes de dejarlo corriendo
+// en producción por tiempo indefinido.
+function logDiagnostico(correo: string, motivo: string) {
+  console.warn(`[verificar-codigo] rechazo -- correo=${correo} motivo=${motivo}`);
+}
+
 export async function POST(request: Request) {
   const ip = getClientIp(request);
 
@@ -56,6 +67,7 @@ export async function POST(request: Request) {
 
   const turnstileOk = await verifyTurnstile(turnstileToken, ip);
   if (!turnstileOk) {
+    logDiagnostico(correo, "turnstile_invalido");
     return errorEsperado(400, "No se pudo verificar que eres humano. Intenta de nuevo.");
   }
 
@@ -77,12 +89,40 @@ export async function POST(request: Request) {
   }
 
   if (!fila) {
+    // La consulta de arriba ya aplicó las cuatro condiciones a la vez
+    // (verificado=false, intentos<MAX, no expirado) -- si no hay fila, se
+    // vuelve a consultar sin esos filtros solo para diagnosticar CUÁL de
+    // las cuatro fue. Es una consulta extra únicamente para este log
+    // temporal; el filtro original sigue siendo la única fuente de verdad
+    // para la decisión de aceptar/rechazar.
+    const { data: diagnostico } = await supabase
+      .from("codigos_verificacion")
+      .select("verificado, expira_en, intentos_fallidos")
+      .eq("correo", correo)
+      .order("fecha_creacion", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    let motivo: string;
+    if (!diagnostico) {
+      motivo = "codigo_no_encontrado";
+    } else if (diagnostico.verificado) {
+      motivo = "codigo_ya_usado";
+    } else if (diagnostico.intentos_fallidos >= MAX_INTENTOS) {
+      motivo = "intentos_agotados";
+    } else if (new Date(diagnostico.expira_en) <= new Date()) {
+      motivo = "codigo_expirado";
+    } else {
+      motivo = "desconocido";
+    }
+    logDiagnostico(correo, motivo);
     return errorEsperado(400, MENSAJE_GENERICO);
   }
 
   const coincide = await compararCodigoVerificacion(codigo, fila.codigo_hash);
 
   if (!coincide) {
+    logDiagnostico(correo, "hash_no_coincide");
     await supabase
       .from("codigos_verificacion")
       .update({ intentos_fallidos: fila.intentos_fallidos + 1 })

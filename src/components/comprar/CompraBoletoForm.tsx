@@ -5,6 +5,7 @@ import Script from "next/script";
 import { loadStripe } from "@stripe/stripe-js";
 import { FormAlert } from "@/components/FormAlert";
 import { PagoStripe } from "@/components/comprar/PagoStripe";
+import { TurnstileWidget } from "@/components/TurnstileWidget";
 
 type Paso = "correo" | "codigo" | "seleccion" | "pago";
 
@@ -22,7 +23,7 @@ function formatearPrecio(centavos: number, moneda: string) {
   }).format(centavos / 100);
 }
 
-function WidgetTurnstile() {
+function WidgetTurnstile({ onToken }: { onToken: (token: string) => void }) {
   if (!TURNSTILE_SITE_KEY) {
     return (
       <p className="text-xs italic text-slate-500">
@@ -30,12 +31,7 @@ function WidgetTurnstile() {
       </p>
     );
   }
-  return <div className="cf-turnstile" data-sitekey={TURNSTILE_SITE_KEY} />;
-}
-
-function leerTurnstileToken(form: HTMLFormElement): string {
-  const datos = new FormData(form);
-  return String(datos.get("cf-turnstile-response") ?? "");
+  return <TurnstileWidget siteKey={TURNSTILE_SITE_KEY} onToken={onToken} />;
 }
 
 export function CompraBoletoForm() {
@@ -49,6 +45,7 @@ export function CompraBoletoForm() {
   const [enviando, setEnviando] = useState(false);
   const [mensajeError, setMensajeError] = useState<string | null>(null);
   const [incidentId, setIncidentId] = useState<string | undefined>(undefined);
+  const [turnstileToken, setTurnstileToken] = useState("");
 
   useEffect(() => {
     if (paso !== "seleccion") return;
@@ -57,6 +54,15 @@ export function CompraBoletoForm() {
       .then((data) => setPrecios(data.precios ?? []))
       .catch(() => setPrecios([]));
   }, [paso]);
+
+  // Cada paso monta su propio widget de Turnstile (ver TurnstileWidget) --
+  // el token de un paso anterior nunca debe sobrevivir al cambio de paso,
+  // así que se limpia explícitamente en cada transición de `paso` de abajo
+  // (nunca en un efecto: dispararía un re-render en cascada).
+  function irAPaso(siguiente: Paso) {
+    setTurnstileToken("");
+    setPaso(siguiente);
+  }
 
   async function onSolicitarCodigo(evento: React.FormEvent<HTMLFormElement>) {
     evento.preventDefault();
@@ -73,7 +79,7 @@ export function CompraBoletoForm() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         correo: correoIngresado,
-        turnstileToken: leerTurnstileToken(form),
+        turnstileToken,
       }),
     });
 
@@ -81,7 +87,7 @@ export function CompraBoletoForm() {
 
     if (respuesta.ok) {
       setCorreo(correoIngresado);
-      setPaso("codigo");
+      irAPaso("codigo");
       return;
     }
 
@@ -105,7 +111,7 @@ export function CompraBoletoForm() {
       body: JSON.stringify({
         correo,
         codigo: String(datos.get("codigo") ?? ""),
-        turnstileToken: leerTurnstileToken(form),
+        turnstileToken,
       }),
     });
 
@@ -115,7 +121,7 @@ export function CompraBoletoForm() {
 
     if (respuesta.ok && cuerpo?.sesionToken) {
       setSesionToken(cuerpo.sesionToken);
-      setPaso("seleccion");
+      irAPaso("seleccion");
       return;
     }
 
@@ -129,8 +135,6 @@ export function CompraBoletoForm() {
     setMensajeError(null);
     setIncidentId(undefined);
 
-    const form = evento.currentTarget;
-
     const respuesta = await fetch("/api/comprar/crear-checkout-session", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -138,7 +142,7 @@ export function CompraBoletoForm() {
         sesionToken,
         categoria,
         cantidad,
-        turnstileToken: leerTurnstileToken(form),
+        turnstileToken,
       }),
     });
 
@@ -148,7 +152,7 @@ export function CompraBoletoForm() {
 
     if (respuesta.ok && cuerpo?.clientSecret) {
       setClientSecret(cuerpo.clientSecret);
-      setPaso("pago");
+      irAPaso("pago");
       return;
     }
 
@@ -159,7 +163,15 @@ export function CompraBoletoForm() {
   return (
     <div className="flex flex-col gap-6">
       {TURNSTILE_SITE_KEY && (
-        <Script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer />
+        // render=explicit: sin esto, el script auto-escanea el DOM en busca
+        // de divs `.cf-turnstile` y los renderiza él mismo -- justo el modo
+        // implícito que causaba el bug de widgets huérfanos entre pasos.
+        // TurnstileWidget llama a window.turnstile.render()/remove() a mano.
+        <Script
+          src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit"
+          async
+          defer
+        />
       )}
 
       <Pasos actual={paso} />
@@ -182,11 +194,11 @@ export function CompraBoletoForm() {
               Te enviaremos un código de 6 dígitos para confirmar tu correo antes de continuar.
             </p>
           </div>
-          <WidgetTurnstile />
+          <WidgetTurnstile onToken={setTurnstileToken} />
           {mensajeError && <FormAlert tipo="error" mensaje={mensajeError} incidentId={incidentId} />}
           <button
             type="submit"
-            disabled={enviando}
+            disabled={enviando || (Boolean(TURNSTILE_SITE_KEY) && !turnstileToken)}
             className="self-start rounded-lg bg-dorado px-6 py-2.5 text-sm font-semibold text-navy disabled:opacity-60"
           >
             {enviando ? "Enviando..." : "Enviar código"}
@@ -213,18 +225,18 @@ export function CompraBoletoForm() {
               className="mt-1.5 w-full rounded-lg border border-white/20 bg-white/5 px-4 py-2.5 text-center text-2xl tracking-[0.5em] text-white focus:border-dorado focus:outline-none"
             />
           </div>
-          <WidgetTurnstile />
+          <WidgetTurnstile onToken={setTurnstileToken} />
           {mensajeError && <FormAlert tipo="error" mensaje={mensajeError} incidentId={incidentId} />}
           <button
             type="submit"
-            disabled={enviando}
+            disabled={enviando || (Boolean(TURNSTILE_SITE_KEY) && !turnstileToken)}
             className="self-start rounded-lg bg-dorado px-6 py-2.5 text-sm font-semibold text-navy disabled:opacity-60"
           >
             {enviando ? "Verificando..." : "Verificar código"}
           </button>
           <button
             type="button"
-            onClick={() => setPaso("correo")}
+            onClick={() => irAPaso("correo")}
             className="self-start text-sm text-slate-400 underline underline-offset-4 hover:text-slate-200"
           >
             Usar otro correo
@@ -266,11 +278,13 @@ export function CompraBoletoForm() {
               className="mt-1.5 w-full rounded-lg border border-white/20 bg-white/5 px-4 py-2.5 text-base text-white focus:border-dorado focus:outline-none"
             />
           </div>
-          <WidgetTurnstile />
+          <WidgetTurnstile onToken={setTurnstileToken} />
           {mensajeError && <FormAlert tipo="error" mensaje={mensajeError} incidentId={incidentId} />}
           <button
             type="submit"
-            disabled={enviando || precios.length === 0}
+            disabled={
+              enviando || precios.length === 0 || (Boolean(TURNSTILE_SITE_KEY) && !turnstileToken)
+            }
             className="self-start rounded-lg bg-dorado px-6 py-2.5 text-sm font-semibold text-navy disabled:opacity-60"
           >
             {enviando ? "Preparando pago..." : "Continuar al pago"}
