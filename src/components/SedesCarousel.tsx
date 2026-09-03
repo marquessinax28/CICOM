@@ -31,11 +31,22 @@ const SLIDES = [
     mapsUrl: "https://maps.app.goo.gl/EVHgofxLnMBKitLv9",
   },
   {
-    src: "/sedes/hcv.jpg",
+    // hcv3.jpg (no hcv.jpg): esta foto de esta sede ya se reemplazó dos
+    // veces (HCV -> HCV2 -> HCV3) reutilizando el mismo nombre de archivo, y
+    // tanto el navegador como el CDN de Vercel cachean por URL -- quien ya
+    // hubiera visitado el sitio seguía viendo la foto vieja aunque el
+    // archivo en el servidor ya fuera otro. Un nombre nuevo por foto evita
+    // el problema de raíz. Si se vuelve a cambiar esta foto, usar hcv4.jpg,
+    // etc. -- nunca reescribir hcv3.jpg con otra imagen.
+    src: "/sedes/hcv3.jpg",
     alt: "HCV",
     width: 2200,
     height: 1467,
-    posicion: "object-center",
+    // object-[50%_15%]: en pantallas anchas y bajas (contenedor mucho más
+    // ancho que la foto) object-center recortaba las manos alzadas de arriba
+    // y mostraba de más la escena de la cadena/bebé de abajo -- este punto
+    // deja completas las manos, el arcoíris y la cúpula central.
+    posicion: "object-[50%_15%]",
     nombre: "Antiguo Hospital Civil de Guadalajara Fray Antonio Alcalde",
     direccion: "Calle Hospital 278, Centro Barranquitas, 44280 Guadalajara, Jal.",
     mapsUrl: "https://maps.app.goo.gl/od4yBcCe6E35iqjG7",

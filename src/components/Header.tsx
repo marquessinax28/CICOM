@@ -22,14 +22,16 @@ export function Header() {
             priority
             className="h-12 w-auto"
           />
+          {/* Tamaños +15% sobre el base (text-xs/text-lg/9px) a pedido del
+              cliente. */}
           <span className="font-serif-logo">
-            <span className="block text-xs font-semibold tracking-wide text-slate-300">
+            <span className="block text-[0.8625rem] font-semibold tracking-wide text-slate-300">
               XXXIV
             </span>
-            <span className="-mt-0.5 block text-lg font-extrabold leading-none tracking-tight text-white">
+            <span className="-mt-0.5 block text-[1.29375rem] font-extrabold leading-none tracking-tight text-white">
               CICOM
             </span>
-            <span className="mt-1 block text-[9px] font-medium uppercase tracking-wider text-slate-400">
+            <span className="mt-1 block text-[10.35px] font-medium uppercase tracking-wider text-slate-400">
               Ciclo de Conferencias Médicas
             </span>
           </span>
