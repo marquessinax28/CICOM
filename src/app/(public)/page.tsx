@@ -52,7 +52,6 @@ export default async function HomePage() {
           sizes="100vw"
           className="absolute inset-0 h-full w-full object-cover object-center md:object-[50%_20%]"
         />
-        <div className="absolute inset-0 bg-gradient-to-b from-navy/90 via-navy/80 to-navy/95" />
         <div className="relative mx-auto max-w-6xl px-4 py-16 sm:py-24">
           <h1 className="text-3xl font-bold tracking-tight sm:text-5xl">
             {edicion?.nombre ?? "CICOM — Ciclo de Conferencias Médicas"}

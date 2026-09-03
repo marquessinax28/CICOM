@@ -1,6 +1,17 @@
 import type { Metadata, Viewport } from "next";
 import { headers } from "next/headers";
+import { Cormorant_Garamond } from "next/font/google";
 import "./globals.css";
+
+// Autohospedada por next/font (nunca un <link> a fonts.googleapis.com en
+// producción -- la CSP del sitio no lo permitiría de todas formas). La
+// variable se expone como --font-cormorant y se mapea a la utilidad
+// `font-cormorant` en globals.css.
+const cormorantGaramond = Cormorant_Garamond({
+  subsets: ["latin"],
+  weight: ["500", "600", "700"],
+  variable: "--font-cormorant",
+});
 
 const DESCRIPCION =
   "CICOM, Ciclo de Conferencias Médicas del Antiguo Hospital Civil de Guadalajara y el Hospital Civil Nuevo Juan I. Menchaca.";
@@ -68,7 +79,7 @@ export default async function RootLayout({
   };
 
   return (
-    <html lang="es">
+    <html lang="es" className={cormorantGaramond.variable}>
       <body>
         <script
           type="application/ld+json"

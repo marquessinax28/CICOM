@@ -22,7 +22,7 @@ export function Header() {
             priority
             className="h-12 w-auto"
           />
-          <span>
+          <span className="font-serif-logo">
             <span className="block text-xs font-semibold tracking-wide text-slate-300">
               XXXIV
             </span>

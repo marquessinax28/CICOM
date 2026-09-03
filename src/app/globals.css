@@ -13,6 +13,14 @@
   --color-navy: #141736;
   --color-navy-light: #1e2350;
   --color-dorado: #c1a57b;
+  /* next/font/google (layout.tsx) define --font-cormorant en <html> con la
+     pila de Cormorant Garamond. Se remapea aquí a un nombre distinto (nunca
+     al mismo --font-cormorant) porque Tailwind también declara este bloque
+     @theme como propiedad de :root -- si el nombre fuera idéntico, la regla
+     de :root ganaría la cascada sobre la de <html> y quedaría
+     autorreferenciada (var(--font-cormorant) apuntándose a sí misma), lo que
+     CSS considera inválido y tira la tipografía. */
+  --font-serif-logo: var(--font-cormorant);
 }
 
 :root {

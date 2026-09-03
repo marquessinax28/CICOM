@@ -34,7 +34,7 @@ const SLIDES = [
     src: "/sedes/hcv.jpg",
     alt: "HCV",
     width: 2200,
-    height: 1466,
+    height: 1467,
     posicion: "object-center",
     nombre: "Antiguo Hospital Civil de Guadalajara Fray Antonio Alcalde",
     direccion: "Calle Hospital 278, Centro Barranquitas, 44280 Guadalajara, Jal.",
