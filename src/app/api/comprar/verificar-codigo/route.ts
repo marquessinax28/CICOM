@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { verificarCodigoSchema } from "@/lib/validation/comprar";
 import { createServiceRoleClient } from "@/lib/supabase/server";
+import { consultarConReintento } from "@/lib/supabase/retry";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { verifyTurnstile } from "@/lib/turnstile";
 import { getClientIp } from "@/lib/request-ip";
@@ -73,19 +74,22 @@ export async function POST(request: Request) {
 
   const supabase = createServiceRoleClient();
 
-  const { data: fila, error: selectError } = await supabase
-    .from("codigos_verificacion")
-    .select("id, codigo_hash, intentos_fallidos")
-    .eq("correo", correo)
-    .eq("verificado", false)
-    .lt("intentos_fallidos", MAX_INTENTOS)
-    .gt("expira_en", new Date().toISOString())
-    .order("fecha_creacion", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  if (selectError) {
-    return errorInesperado(500, selectError);
+  let fila;
+  try {
+    fila = await consultarConReintento(() =>
+      supabase
+        .from("codigos_verificacion")
+        .select("id, codigo_hash, intentos_fallidos")
+        .eq("correo", correo)
+        .eq("verificado", false)
+        .lt("intentos_fallidos", MAX_INTENTOS)
+        .gt("expira_en", new Date().toISOString())
+        .order("fecha_creacion", { ascending: false })
+        .limit(1)
+        .maybeSingle()
+    );
+  } catch (error) {
+    return errorInesperado(500, error);
   }
 
   if (!fila) {
@@ -132,13 +136,12 @@ export async function POST(request: Request) {
 
   // Un solo uso: se marca verificado de inmediato, así que este mismo
   // código no vuelve a matchear el filtro `verificado=false` de arriba.
-  const { error: updateError } = await supabase
-    .from("codigos_verificacion")
-    .update({ verificado: true })
-    .eq("id", fila.id);
-
-  if (updateError) {
-    return errorInesperado(500, updateError);
+  try {
+    await consultarConReintento(() =>
+      supabase.from("codigos_verificacion").update({ verificado: true }).eq("id", fila.id)
+    );
+  } catch (error) {
+    return errorInesperado(500, error);
   }
 
   // El correo queda fijado del lado del servidor: de aquí en adelante, el
@@ -148,12 +151,12 @@ export async function POST(request: Request) {
   const tokenHash = hashTokenSesionCompra(token);
   const expiraEn = new Date(Date.now() + SESION_COMPRA_MINUTOS * 60_000).toISOString();
 
-  const { error: sesionError } = await supabase
-    .from("sesiones_compra")
-    .insert({ correo, token_hash: tokenHash, expira_en: expiraEn });
-
-  if (sesionError) {
-    return errorInesperado(500, sesionError);
+  try {
+    await consultarConReintento(() =>
+      supabase.from("sesiones_compra").insert({ correo, token_hash: tokenHash, expira_en: expiraEn })
+    );
+  } catch (error) {
+    return errorInesperado(500, error);
   }
 
   return NextResponse.json({ ok: true, sesionToken: token });

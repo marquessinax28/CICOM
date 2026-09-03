@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import type Stripe from "stripe";
 import { getStripe } from "@/lib/stripe";
 import { createServiceRoleClient } from "@/lib/supabase/server";
+import { consultarConReintento } from "@/lib/supabase/retry";
 
 // Nota sobre el cuerpo crudo: a diferencia del Pages Router antiguo (que
 // necesitaba `export const config = { api: { bodyParser: false } }`), un
@@ -38,15 +39,16 @@ export async function POST(request: Request) {
   // webhooks que no respondieron 2xx a tiempo. INSERT con PK sobre event.id
   // falla con 23505 (unique_violation) en un reintento -- eso es la señal
   // de "ya procesado", sin necesidad de comparar nada más.
-  const { error: idempotenciaError } = await supabase
-    .from("eventos_stripe_procesados")
-    .insert({ id: event.id, tipo: event.type });
-
-  if (idempotenciaError) {
+  try {
+    await consultarConReintento(() =>
+      supabase.from("eventos_stripe_procesados").insert({ id: event.id, tipo: event.type })
+    );
+  } catch (error) {
+    const idempotenciaError = error as { code?: string };
     if (idempotenciaError.code === "23505") {
       return NextResponse.json({ received: true, duplicado: true });
     }
-    console.error("[stripe webhook] Error registrando idempotencia", idempotenciaError);
+    console.error("[stripe webhook] Error registrando idempotencia", error);
     return NextResponse.json({ error: "Error interno." }, { status: 500 });
   }
 
@@ -54,19 +56,26 @@ export async function POST(request: Request) {
     case "payment_intent.succeeded": {
       const paymentIntent = event.data.object as Stripe.PaymentIntent;
 
-      const { error: rpcError } = await supabase.rpc("fn_marcar_orden_pagada", {
-        p_payment_intent_id: paymentIntent.id,
-        p_amount_received_centavos: paymentIntent.amount_received,
-      });
-
-      if (rpcError) {
+      try {
+        // consultarConReintento absorbe el PGRST303 transitorio -- un pago
+        // real que se queda sin marcar 'pagado' por un desfase de reloj de
+        // la infraestructura de Supabase es justo el caso que no queremos
+        // dejar en manos únicamente del reintento (más lento) de Stripe.
+        await consultarConReintento(() =>
+          supabase.rpc("fn_marcar_orden_pagada", {
+            p_payment_intent_id: paymentIntent.id,
+            p_amount_received_centavos: paymentIntent.amount_received,
+          })
+        );
+      } catch (error) {
         // orden_no_encontrada / monto_no_coincide: se registran como
         // incidente para revisión humana. Se responde 200 de todas formas
         // -- un reintento de Stripe no va a resolver ninguno de los dos
         // casos, y ya quedó auditado en eventos_stripe_procesados.
+        const rpcError = error as { message?: string };
         console.error(
           `[stripe webhook] payment_intent.succeeded ${paymentIntent.id}:`,
-          rpcError.message
+          rpcError.message ?? error
         );
       }
       break;
@@ -79,17 +88,16 @@ export async function POST(request: Request) {
       // Actualización simple de una sola fila -- sin invariantes entre
       // filas, no necesita la función de servidor. Libera la reserva de
       // cupo (fn_reservar_orden_digital solo cuenta 'pendiente' y 'pagado').
-      const { error: updateError } = await supabase
-        .from("ordenes_compra")
-        .update({ estado: "fallido" })
-        .eq("stripe_payment_intent_id", paymentIntent.id)
-        .eq("estado", "pendiente");
-
-      if (updateError) {
-        console.error(
-          `[stripe webhook] ${event.type} ${paymentIntent.id}:`,
-          updateError
+      try {
+        await consultarConReintento(() =>
+          supabase
+            .from("ordenes_compra")
+            .update({ estado: "fallido" })
+            .eq("stripe_payment_intent_id", paymentIntent.id)
+            .eq("estado", "pendiente")
         );
+      } catch (error) {
+        console.error(`[stripe webhook] ${event.type} ${paymentIntent.id}:`, error);
       }
       break;
     }

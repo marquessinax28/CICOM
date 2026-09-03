@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { solicitarCodigoSchema } from "@/lib/validation/comprar";
 import { createServiceRoleClient } from "@/lib/supabase/server";
+import { consultarConReintento } from "@/lib/supabase/retry";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { verifyTurnstile } from "@/lib/turnstile";
 import { getClientIp } from "@/lib/request-ip";
@@ -75,12 +76,14 @@ export async function POST(request: Request) {
   const codigoHash = await hashCodigoVerificacion(codigo);
   const expiraEn = new Date(Date.now() + EXPIRACION_MINUTOS * 60_000).toISOString();
 
-  const { error: insertError } = await supabase
-    .from("codigos_verificacion")
-    .insert({ correo, codigo_hash: codigoHash, expira_en: expiraEn });
-
-  if (insertError) {
-    return errorInesperado(500, insertError);
+  try {
+    await consultarConReintento(() =>
+      supabase
+        .from("codigos_verificacion")
+        .insert({ correo, codigo_hash: codigoHash, expira_en: expiraEn })
+    );
+  } catch (error) {
+    return errorInesperado(500, error);
   }
 
   try {

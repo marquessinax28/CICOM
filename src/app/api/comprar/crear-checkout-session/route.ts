@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { crearCheckoutSchema } from "@/lib/validation/comprar";
 import { createServiceRoleClient } from "@/lib/supabase/server";
+import { consultarConReintento } from "@/lib/supabase/retry";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { verifyTurnstile } from "@/lib/turnstile";
 import { getClientIp } from "@/lib/request-ip";
@@ -48,15 +49,18 @@ export async function POST(request: Request) {
   // El correo viene ÚNICAMENTE de la sesión de compra fijada al verificar
   // el código -- nunca del cuerpo de esta petición.
   const tokenHash = hashTokenSesionCompra(sesionToken);
-  const { data: sesion, error: sesionError } = await supabase
-    .from("sesiones_compra")
-    .select("correo, expira_en")
-    .eq("token_hash", tokenHash)
-    .gt("expira_en", new Date().toISOString())
-    .maybeSingle();
-
-  if (sesionError) {
-    return errorInesperado(500, sesionError);
+  let sesion;
+  try {
+    sesion = await consultarConReintento(() =>
+      supabase
+        .from("sesiones_compra")
+        .select("correo, expira_en")
+        .eq("token_hash", tokenHash)
+        .gt("expira_en", new Date().toISOString())
+        .maybeSingle()
+    );
+  } catch (error) {
+    return errorInesperado(500, error);
   }
   if (!sesion) {
     return errorEsperado(401, "Tu verificación de correo expiró. Solicita un nuevo código.");
@@ -69,42 +73,46 @@ export async function POST(request: Request) {
   // tramo se resuelve con la fecha de HOY en el servidor, nunca con nada
   // que mande el cliente.
   const hoy = hoyISO();
-  const { data: precio, error: precioError } = await supabase
-    .from("precios_boleto")
-    .select("precio_centavos")
-    .eq("tipo_boleto", "digital")
-    .eq("categoria", categoria)
-    .eq("activo", true)
-    .lte("vigente_desde", hoy)
-    .or(`vigente_hasta.is.null,vigente_hasta.gte.${hoy}`)
-    .maybeSingle();
-
-  if (precioError) {
-    return errorInesperado(500, precioError);
+  let precio;
+  try {
+    precio = await consultarConReintento(() =>
+      supabase
+        .from("precios_boleto")
+        .select("precio_centavos")
+        .eq("tipo_boleto", "digital")
+        .eq("categoria", categoria)
+        .eq("activo", true)
+        .lte("vigente_desde", hoy)
+        .or(`vigente_hasta.is.null,vigente_hasta.gte.${hoy}`)
+        .maybeSingle()
+    );
+  } catch (error) {
+    return errorInesperado(500, error);
   }
   if (!precio) {
     return errorEsperado(400, "Esa categoría de boleto no está disponible.");
   }
 
-  const { data: ordenId, error: reservaError } = await supabase.rpc(
-    "fn_reservar_orden_digital",
-    {
-      p_nombre: correo,
-      p_correo: correo,
-      p_cantidad: cantidad,
-      p_categoria: categoria,
-      p_precio_unitario_centavos: precio.precio_centavos,
-    }
-  );
-
-  if (reservaError) {
-    if (reservaError.message.includes("cupo_agotado")) {
+  let ordenId;
+  try {
+    ordenId = await consultarConReintento(() =>
+      supabase.rpc("fn_reservar_orden_digital", {
+        p_nombre: correo,
+        p_correo: correo,
+        p_cantidad: cantidad,
+        p_categoria: categoria,
+        p_precio_unitario_centavos: precio.precio_centavos,
+      })
+    );
+  } catch (error) {
+    const reservaError = error as { message?: string };
+    if (reservaError.message?.includes("cupo_agotado")) {
       return errorEsperado(409, "Se agotó el cupo de boletos digitales disponibles.");
     }
-    if (reservaError.message.includes("cupo_no_configurado")) {
+    if (reservaError.message?.includes("cupo_no_configurado")) {
       return errorEsperado(503, "La compra de boletos no está disponible en este momento.");
     }
-    return errorInesperado(500, reservaError);
+    return errorInesperado(500, error);
   }
 
   const montoTotalCentavos = precio.precio_centavos * cantidad;
@@ -119,14 +127,9 @@ export async function POST(request: Request) {
       metadata: { orden_id: String(ordenId), categoria, cantidad: String(cantidad) },
     });
 
-    const { error: updateError } = await supabase
-      .from("ordenes_compra")
-      .update({ stripe_payment_intent_id: paymentIntent.id })
-      .eq("id", ordenId);
-
-    if (updateError) {
-      throw updateError;
-    }
+    await consultarConReintento(() =>
+      supabase.from("ordenes_compra").update({ stripe_payment_intent_id: paymentIntent.id }).eq("id", ordenId)
+    );
 
     return NextResponse.json({
       ok: true,
@@ -135,8 +138,16 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     // Libera la reserva de cupo: la orden queda 'fallido' en vez de seguir
-    // contando como 'pendiente'.
-    await supabase.from("ordenes_compra").update({ estado: "fallido" }).eq("id", ordenId);
+    // contando como 'pendiente'. Best-effort -- si esta misma limpieza
+    // choca con un PGRST303, la orden se libera sola por el corte de 30
+    // minutos en fn_reservar_orden_digital.
+    try {
+      await consultarConReintento(() =>
+        supabase.from("ordenes_compra").update({ estado: "fallido" }).eq("id", ordenId)
+      );
+    } catch {
+      // Ver comentario de arriba: no hay nada más que hacer aquí.
+    }
     return errorInesperado(502, error);
   }
 }
