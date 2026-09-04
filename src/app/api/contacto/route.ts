@@ -5,6 +5,7 @@ import { checkRateLimit } from "@/lib/rate-limit";
 import { verifyTurnstile } from "@/lib/turnstile";
 import { getClientIp } from "@/lib/request-ip";
 import { errorEsperado, errorInesperado } from "@/lib/api-errors";
+import { enviarAvisoContacto } from "@/lib/resend";
 
 export async function POST(request: Request) {
   const ip = getClientIp(request);
@@ -44,6 +45,17 @@ export async function POST(request: Request) {
 
   if (error) {
     return errorInesperado(500, error);
+  }
+
+  // El mensaje ya quedó guardado -- el correo es solo un aviso para no
+  // depender de entrar a Supabase, nunca la vía principal. Si Resend falla,
+  // el mensaje no se pierde: se registra el error y se responde éxito de
+  // todas formas, porque desde el punto de vista de quien escribió, su
+  // mensaje sí se recibió.
+  try {
+    await enviarAvisoContacto(nombre, correo, mensaje);
+  } catch (avisoError) {
+    console.error("[contacto] no se pudo enviar el aviso por correo —", avisoError);
   }
 
   return NextResponse.json({ ok: true });

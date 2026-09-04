@@ -54,6 +54,74 @@ function plantillaBoletoDigital(nombre: string): string {
   `.trim();
 }
 
+// Escapado contextual para HTML (CLAUDE.md sección 3): nombre y mensaje del
+// formulario de contacto son texto libre de un desconocido -- se guardan y
+// se muestran tal cual, nunca se "sanitizan" quitando caracteres, pero acá
+// se renderizan dentro de una plantilla HTML, así que si alguien escribe
+// "<b>" o "&" eso debe llegar como texto literal al correo, no interpretarse
+// como marcado.
+function escapeHtml(texto: string): string {
+  return texto
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+// Mismo criterio visual que las otras plantillas. A diferencia de esas, el
+// contenido de nombre/correo/mensaje viene de un desconocido sin verificar
+// (a diferencia del código o el boleto, que se generan del lado del
+// servidor) -- de ahí el escapeHtml en los tres.
+function plantillaAvisoContacto(nombre: string, correo: string, mensaje: string): string {
+  const nombreSeguro = escapeHtml(nombre);
+  const correoSeguro = escapeHtml(correo);
+  const mensajeSeguro = escapeHtml(mensaje).replace(/\n/g, "<br>");
+  return `
+    <div style="font-family: Georgia, 'Times New Roman', serif; max-width: 480px; margin: 0 auto; padding: 32px 24px; background: #141736; color: #e7e9f5;">
+      <p style="font-size: 12px; letter-spacing: 0.1em; color: #94a3b8; text-transform: uppercase; margin: 0 0 4px;">XXXIV CICOM</p>
+      <h1 style="font-size: 20px; margin: 0 0 16px; color: #ffffff;">Nuevo mensaje de contacto</h1>
+      <p style="font-size: 14px; line-height: 1.6; margin: 0 0 4px;"><strong>Nombre:</strong> ${nombreSeguro}</p>
+      <p style="font-size: 14px; line-height: 1.6; margin: 0 0 20px;"><strong>Correo:</strong> ${correoSeguro}</p>
+      <p style="font-size: 15px; line-height: 1.6; margin: 0;">${mensajeSeguro}</p>
+    </div>
+  `.trim();
+}
+
+// Aviso de que llegó un mensaje nuevo -- el mensaje YA está guardado en
+// mensajes_contacto antes de llamar esto (ver
+// src/app/api/contacto/route.ts); este correo es una notificación, no la
+// vía principal. replyTo es el correo de quien escribió (no
+// CONTACTO_SOPORTE_EMAIL) para que responder desde el cliente de correo le
+// llegue directo a esa persona, no de vuelta a soporte.
+export async function enviarAvisoContacto(
+  nombre: string,
+  correo: string,
+  mensaje: string
+): Promise<void> {
+  const from = process.env.RESEND_FROM_EMAIL;
+  if (!from) {
+    throw new Error("Falta RESEND_FROM_EMAIL en el entorno");
+  }
+  const destinoSoporte = process.env.CONTACTO_SOPORTE_EMAIL;
+  if (!destinoSoporte) {
+    throw new Error("Falta CONTACTO_SOPORTE_EMAIL en el entorno");
+  }
+
+  const resend = getResend();
+  const { error } = await resend.emails.send({
+    from,
+    to: destinoSoporte,
+    replyTo: correo,
+    subject: `Nuevo mensaje de contacto — ${nombre}`,
+    html: plantillaAvisoContacto(nombre, correo, mensaje),
+  });
+
+  if (error) {
+    throw new Error(`Resend error: ${error.message}`);
+  }
+}
+
 export async function enviarBoletoDigital(
   correo: string,
   nombre: string,
