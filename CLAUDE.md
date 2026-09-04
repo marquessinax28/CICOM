@@ -143,7 +143,7 @@ Actúas como desarrollador full-stack **con responsabilidad de seguridad**. Este
   - Genera folio y contraseña con un CSPRNG (`crypto.randomBytes`), nunca con `Math.random()`.
   - Alfabeto sin ambigüedades (sin `0/O`, `1/l/I`). **Contraseña: 8 caracteres.** Nota de diseño: se bajó de 12 a 8 porque en los boletos físicos la persona teclea la contraseña a mano desde un papel impreso; 8 caracteres de un alfabeto de ~32 símbolos siguen dando entropía suficiente **siempre y cuando** el bloqueo progresivo de la sección 6 esté implementado. Si por cualquier razón el rate limiting no se implementa, esta longitud sube a 12.
   - **Folio: 12 caracteres**, mismo alfabeto sin ambigüedades. Nota de diseño — desviación documentada de la regla de la sección 1 (identificadores públicos con ≥128 bits de entropía): 12 caracteres de un alfabeto de 32 símbolos dan 60 bits (32¹² = 2⁶⁰), no los 128 pedidos ahí. Se acepta esta desviación porque (a) el folio **no es un secreto autosuficiente** — por sí solo no da acceso a nada; toda operación (activar, ver certificado) exige además la contraseña correcta, verificada en tiempo constante; (b) el bloqueo progresivo de la sección 6 vuelve inviable adivinar folio + contraseña por fuerza bruta en línea, sin importar la entropía nominal; (c) llegar a 128 bits reales (26 caracteres del mismo alfabeto) haría el folio impracticable de teclear a mano desde un boleto físico impreso, el mismo problema que bajó la contraseña de 12 a 8. Si el rate limiting no está implementado, esta compensación no aplica y el folio debe tratarse como inseguro.
-  - Guarda **solo el hash** con Argon2id (o bcrypt cost ≥12). Nunca en claro, nunca cifrada de forma reversible, nunca recuperable — solo reemitible.
+  - Guarda **solo el hash**. Implementación real: **bcrypt cost 12** (vía `bcryptjs`, `src/lib/hash.ts`) — se eligió sobre Argon2id porque es JS puro sin bindings nativos, requisito para compilar en las funciones serverless de Vercel; Argon2id necesita un addon nativo que no siempre está disponible en ese runtime. Nunca en claro, nunca cifrada de forma reversible, nunca recuperable — solo reemitible.
   - Compara con función de **tiempo constante**.
 - **Cookies de sesión:** `HttpOnly`, `Secure`, `SameSite=Lax` (o `Strict` en el panel admin), `Path=/`, con expiración e **inactividad máxima**. Rota el identificador de sesión al autenticar. Nada de tokens de sesión en `localStorage`.
 - **Protección CSRF** en todo formulario o petición que cambie estado: token sincronizado o verificación estricta de `Origin`/`Sec-Fetch-Site`. `SameSite` solo no es suficiente.
@@ -321,7 +321,7 @@ Marca cada punto solo con evidencia (captura, prueba automatizada o salida de co
 - [ ] Rutas protegidas responden 401/403 al accederlas por URL directa sin sesión.
 - [ ] Endpoints `/admin` y `/debug` protegidos y con MFA; los de debug eliminados en producción.
 - [ ] Cookies con `HttpOnly`, `Secure`, `SameSite`, expiración y rotación al autenticar.
-- [ ] Contraseñas de boleto hasheadas con Argon2id/bcrypt; ninguna en claro en la BD.
+- [ ] Contraseñas de boleto hasheadas con bcrypt cost 12 (`bcryptjs`); ninguna en claro en la BD.
 - [ ] Protección CSRF activa en peticiones que cambian estado.
 - [ ] **Rol leído del servidor, no del cliente; separación admin / superadmin verificada.**
 
@@ -404,3 +404,30 @@ Marca cada punto solo con evidencia (captura, prueba automatizada o salida de co
 
 ### Pruebas
 - [ ] Las trece pruebas de seguridad de la sección 14 existen, se ejecutan en CI y pasan.
+
+### Pendientes de lanzamiento (antes de anunciar la venta real)
+
+Verificado en producción con datos y pagos de prueba (Fase 5 digital, 2026-09-04):
+webhook, folio, contraseña, PDF con monto congelado, correo con adjunto,
+descarga firmada y bucket privado confirmado como no listable (404 directo).
+Antes de abrir la venta al público falta:
+
+- [ ] **Limpiar datos de prueba:** borrar de `ordenes_compra` y `boletos` las
+      filas generadas durante las pruebas (identificables por el correo de
+      prueba usado), y borrar del bucket `boletos-digitales` los PDFs sueltos
+      que le correspondan. No borrar por rango de fecha a ciegas — filtrar por
+      el correo/orden de prueba específico para no tocar compras reales que
+      puedan coincidir en el tiempo.
+- [ ] **Quitar el bloqueo de indexación:** retirar cualquier `noindex` (meta
+      tag o cabecera) y el bloqueo en `/robots.txt` que haya estado activo
+      mientras el sitio no era público, para que el sitio vuelva a ser
+      rastreable antes del lanzamiento.
+- [ ] **Cambiar Stripe a modo live:** reemplazar las claves de prueba
+      (`sk_test_...` / `pk_test_...`) por las claves live en las variables de
+      entorno de producción de Vercel, y crear un **endpoint de webhook live
+      separado** en el dashboard de Stripe (no reutilizar el de test) con su
+      propio `STRIPE_WEBHOOK_SECRET` (`whsec_...`) — cada modo tiene su propio
+      secreto de firma.
+- [ ] **Contratar Resend Pro:** el plan actual no cubre el volumen estimado
+      (~15,000 envíos entre códigos, boletos y certificados); actualizar antes
+      de que el volumen real empiece a fallar por límite de envíos.
