@@ -40,21 +40,6 @@ export const metadata: Metadata = {
     template: "%s — CICOM",
   },
   description: DESCRIPCION,
-  // ⚠️ TEMPORAL -- sitio todavía en construcción (Fase 3, sin datos reales
-  // de sedes/patrocinadores/boletos). Bloquea indexación en todos los
-  // buscadores para que Google/Bing no muestren una versión incompleta en
-  // resultados de búsqueda antes del lanzamiento.
-  // QUITAR este bloque `robots` (y volver a "allow" en src/app/robots.ts)
-  // antes de salir a producción con el contenido definitivo.
-  robots: {
-    index: false,
-    follow: false,
-    nocache: true,
-    googleBot: {
-      index: false,
-      follow: false,
-    },
-  },
   openGraph: {
     title: "CICOM — Ciclo de Conferencias Médicas",
     description: DESCRIPCION,

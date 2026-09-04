@@ -418,10 +418,12 @@ Antes de abrir la venta al público falta:
       que le correspondan. No borrar por rango de fecha a ciegas — filtrar por
       el correo/orden de prueba específico para no tocar compras reales que
       puedan coincidir en el tiempo.
-- [ ] **Quitar el bloqueo de indexación:** retirar cualquier `noindex` (meta
-      tag o cabecera) y el bloqueo en `/robots.txt` que haya estado activo
-      mientras el sitio no era público, para que el sitio vuelva a ser
-      rastreable antes del lanzamiento.
+- [x] **Quitar el bloqueo de indexación** (2026-09-04): quitado el bloque
+      `robots: { index: false, ... }` de `metadata` en `src/app/layout.tsx`
+      y cambiado `src/app/robots.ts` de `disallow: "/"` a `allow: "/"` con
+      `disallow: ["/admin", "/api", "/comprar-boleto/exito"]`. Verificado
+      `NEXT_PUBLIC_SITE_URL` en producción = `https://leonesgruponegro.com.mx`;
+      `sitemap.ts` ya excluía admin/api/éxito de compra sin necesitar cambios.
 - [ ] **Cambiar Stripe a modo live:** reemplazar las claves de prueba
       (`sk_test_...` / `pk_test_...`) por las claves live en las variables de
       entorno de producción de Vercel, y crear un **endpoint de webhook live

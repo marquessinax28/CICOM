@@ -1,14 +1,5 @@
 import type { MetadataRoute } from "next";
 
-// ⚠️ TEMPORAL -- sitio todavía en construcción (Fase 3, sin datos reales de
-// sedes/patrocinadores/boletos). `disallow: "/"` evita que los buscadores
-// rastreen el sitio mientras está incompleto; la etiqueta `robots: noindex`
-// en src/app/layout.tsx hace el trabajo real de bloquear la indexación.
-//
-// ANTES DEL LANZAMIENTO REAL:
-//   1. Quitar el bloque `robots` de src/app/layout.tsx.
-//   2. Cambiar el `disallow` de abajo por `allow: "/"` (con
-//      `disallow: ["/admin", "/api"]` como antes) para permitir el rastreo.
 export default function robots(): MetadataRoute.Robots {
   const baseUrl = process.env.NEXT_PUBLIC_SITE_URL;
   if (!baseUrl) {
@@ -18,7 +9,14 @@ export default function robots(): MetadataRoute.Robots {
   return {
     rules: {
       userAgent: "*",
-      disallow: "/",
+      allow: "/",
+      // /admin -- panel administrativo, nunca debe aparecer en resultados
+      // de búsqueda. /api -- rutas de servidor, incluidas las de descarga
+      // de boletos (nunca contenido para indexar). /comprar-boleto/exito --
+      // página de estado de una compra individual, sin valor de búsqueda y
+      // sin ningún enlace público hacia ella (solo se llega vía redirect de
+      // Stripe con un payment_intent en la URL).
+      disallow: ["/admin", "/api", "/comprar-boleto/exito"],
     },
     sitemap: `${baseUrl}/sitemap.xml`,
   };
