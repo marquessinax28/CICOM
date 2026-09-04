@@ -67,7 +67,7 @@ Cada boleto lleva **folio + contraseña**. No hay código QR. La contraseña es 
 
 **Flujos críticos:**
 
-1. **Compra digital** — el usuario da su correo → recibe código de 6 dígitos → lo valida → se desbloquea el checkout con el correo precargado y bloqueado → paga con Stripe → el **webhook verificado** dispara la generación del folio y contraseña → se dibujan sobre la plantilla del boleto → se descarga y se envía por correo.
+1. **Compra digital** — el usuario da su correo → recibe código de 6 dígitos → lo valida → se desbloquea el checkout con el correo precargado y bloqueado → paga con Stripe → el **webhook verificado** dispara la generación del folio y contraseña → se dibujan sobre la plantilla del boleto → se descarga y se envía por correo. **Un boleto por compra**: el certificado es individual y se accede con el correo del boleto, así que no se vende más de uno por transacción. Quien quiera varios hace varias compras, cada una con su propio correo verificado.
 2. **Generación de lotes** — el superadmin genera N boletos de un tipo, respetando el cupo configurado → el sistema entrega **una sola vez** el archivo de reparto: PDF con boletos diseñados para `fisico`, Excel con folio y contraseña en columnas para `beca_residente` y `colchon` → en la base de datos solo queda el hash. El archivo contiene credenciales en claro y debe tratarse como tal: descarga única, URL firmada de vida corta y auditoría de quién lo descargó.
 3. **Activación** — quien recibió un boleto pre-generado entra con folio + contraseña y captura nombre y correo. Solo procede si el boleto está en estado `disponible`; uno ya `vendido` no se puede sobrescribir.
 4. **Certificado** — correo + contraseña del boleto → se genera el PDF al vuelo, con el nombre ya registrado superpuesto sobre la plantilla → se ve en pantalla y se descarga.
@@ -98,12 +98,12 @@ Están en `CLAUDE.md` y gobiernan todo el desarrollo. Las cinco que más aplican
 
 No bloquean el desarrollo, pero hay que dejarlos parametrizables:
 
-- Precio del boleto y si hay categorías (estudiante / residente / especialista)
-- Fecha límite de inscripción y si hay precio anticipado
+- Fecha límite de inscripción: sin definir. El tramo de precio de noviembre queda vigente indefinidamente hasta que el comité lo cierre o agregue un tramo nuevo
 - Si el certificado se bloquea hasta el cierre del congreso
 - Si hay validación de entrada física al evento
 - Verificación de Stripe (datos fiscales del comité) — se desarrolla en modo prueba mientras tanto
 - Confirmar si los 6,000 son aforo físico estricto o meta de venta
-- Nonce de CSP: al agregar JSON-LD (Fase 3) y Stripe Elements (Fase 4), leer el nonce desde `headers()` (`x-nonce`) y pasarlo al `<script nonce={...}>`. No usar `style={{...}}` en React — clases de Tailwind en su lugar
+
+**Resuelto por el comité:** precio del boleto digital por tramos de fecha (septiembre $550, octubre $650, noviembre $700 MXN), parametrizado en la tabla `precios_boleto` — no fijo en código. Sin categorías (estudiante / residente / especialista): un boleto por compra, sin selector, a nombre del correo verificado.
 
 ---
