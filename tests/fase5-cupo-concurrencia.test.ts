@@ -1,6 +1,8 @@
 // CLAUDE.md sección 14, prueba 13: "Compras concurrentes al llegar al cupo
-// de 6,000 -> no se emite el boleto 6,001." Crear 6,000 filas reales solo
-// para probar esto sería absurdo -- la garantía que importa es que
+// total -> no se emite el boleto siguiente." (el cupo total es hoy 8,000,
+// configurable en aforo_total_boletos -- ver migración
+// 20260904090300_aforo_total_configurable.sql). Crear miles de filas reales
+// solo para probar esto sería absurdo -- la garantía que importa es que
 // fn_reservar_orden_digital serializa con `SELECT ... FOR UPDATE` sobre
 // cupos_boleto ANTES de contar y de insertar (migración
 // 20260903090600_orden_monto_centavos_y_precio_ref.sql), y esa garantía es

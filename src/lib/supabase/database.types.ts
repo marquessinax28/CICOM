@@ -38,6 +38,40 @@ export type Database = {
         }
         Relationships: []
       }
+      // Parche manual -- tabla creada por
+      // supabase/migrations/20260904090300_aforo_total_configurable.sql,
+      // pendiente de aplicar vía CLI (bloqueado en esta máquina, ver
+      // CLAUDE.md) y regenerar con `supabase gen types typescript --linked`.
+      // Reemplazar este bloque cuando eso ocurra.
+      aforo_total_boletos: {
+        Row: {
+          cupo_total_maximo: number
+          fecha_modificacion: string
+          id: number
+          modificado_por: number | null
+        }
+        Insert: {
+          cupo_total_maximo: number
+          fecha_modificacion?: string
+          id?: number
+          modificado_por?: number | null
+        }
+        Update: {
+          cupo_total_maximo?: number
+          fecha_modificacion?: string
+          id?: number
+          modificado_por?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "aforo_total_boletos_modificado_por_fkey"
+            columns: ["modificado_por"]
+            isOneToOne: false
+            referencedRelation: "administradores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       boletos: {
         Row: {
           certificado_descargado: boolean

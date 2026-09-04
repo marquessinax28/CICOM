@@ -78,8 +78,10 @@ Datos NO tratados: no se almacenan datos de tarjeta en ningún caso. No se pide 
 Modelo de acceso: NO existen cuentas de usuario. El boleto es el registro.
 Roles: público (sin sesión) · admin · superadmin
 
-Tipos de boleto (cupo total 6,000):
-  - digital       (~1,500) — se compra en línea, nace con nombre y correo
+Tipos de boleto (cupo total 8,000 -- actualizado 2026-09-04, antes 6,000;
+el tope vive en la tabla `aforo_total_boletos`, un UPDATE lo cambia sin
+necesidad de migración -- ver sección 5):
+  - digital       (~3,500) — se compra en línea, nace con nombre y correo
   - fisico        (~2,500) — pre-generado por lote, se imprime, se reparte a mano
   - beca_residente(~1,500) — pre-generado por lote, se reparte digitalmente a mano
   - colchon       (~500)   — pre-generado por lote, se reparte a mano
@@ -175,7 +177,7 @@ Actúas como desarrollador full-stack **con responsabilidad de seguridad**. Este
 
 - **El precio se calcula en el servidor** a partir del catálogo en base de datos. El cliente envía qué producto/cantidad quiere, **nunca cuánto cuesta**. Un monto que llega del navegador se ignora.
 - Valida en el servidor: existencia del evento, que esté abierto, cupo disponible y límites por comprador.
-- **Control del cupo de 6,000 boletos:** la verificación de cupo y la creación de los boletos ocurren dentro de la **misma transacción de base de datos**, con bloqueo, para que dos compras simultáneas no puedan rebasar el límite. Un `SELECT COUNT(*)` seguido de un `INSERT` sin transacción es una condición de carrera explotable.
+- **Control del cupo total de boletos (8,000 -- ver arriba, "Tipos de boleto"):** la verificación de cupo y la creación de los boletos ocurren dentro de la **misma transacción de base de datos**, con bloqueo, para que dos compras simultáneas no puedan rebasar el límite. Un `SELECT COUNT(*)` seguido de un `INSERT` sin transacción es una condición de carrera explotable. El tope en sí vive en `aforo_total_boletos` (una sola fila, configurable con un `UPDATE`); `fn_check_cupos_boleto_total` solo valida contra ese valor -- nunca lo tiene escrito en el cuerpo de la función, así un cambio de aforo no exige una migración.
 - **El boleto se emite únicamente al recibir el webhook de Stripe verificado**, no cuando el navegador vuelve a la página de éxito (esa redirección se puede falsificar).
 - **Verifica la firma del webhook** con el secreto de firma y el cuerpo **crudo** (sin parsear). Rechaza firmas inválidas con 400. En Next.js esto exige desactivar el parseo automático del cuerpo en esa ruta.
 - **Idempotencia:** Stripe reintenta. Guarda el `event.id` procesado y descarta duplicados, para que un reintento no genere dos boletos. Usa claves de idempotencia también al crear cobros.
@@ -253,7 +255,7 @@ Este es el activo más sensible del sistema: un solo PDF puede contener 2,500 cr
 - **CORS restrictivo:** lista explícita de orígenes propios. Nunca `Access-Control-Allow-Origin: *` combinado con credenciales.
 - **Cifrado en tránsito** (TLS 1.2+) y **en reposo** (cifrado de disco/volumen del proveedor, activado y verificado).
 - **Las contraseñas se hashean, no se cifran** — el cifrado es reversible y ahí no lo quieres.
-- Configura **SPF, DKIM y DMARC** en el dominio (registros en GoDaddy, valores provistos por Resend): los boletos y certificados van por correo y sin esto es trivial suplantar al congreso en un phishing. Sin esto, además, los ~6,000 correos de certificados terminan en spam.
+- Configura **SPF, DKIM y DMARC** en el dominio (registros en GoDaddy, valores provistos por Resend): los boletos y certificados van por correo y sin esto es trivial suplantar al congreso en un phishing. Sin esto, además, los ~8,000 correos de certificados terminan en spam.
 
 ### 10. Archivos y contenido
 
@@ -303,7 +305,7 @@ Escribe pruebas automatizadas que **fallen** si alguien rompe estos controles:
 10. **Activación de un boleto ya en estado `vendido` → rechazada, sin sobrescribir `nombre_completo` ni `correo`.**
 11. **Segunda descarga del PDF de un lote ya descargado → denegada.**
 12. **Código de verificación expirado o ya usado → rechazado.**
-13. **Compras concurrentes al llegar al cupo de 6,000 → no se emite el boleto 6,001.**
+13. **Compras concurrentes al llegar al cupo total (8,000) → no se emite el boleto 8,001.**
 
 ---
 
@@ -335,7 +337,7 @@ Marca cada punto solo con evidencia (captura, prueba automatizada o salida de co
 - [ ] Firma del webhook verificada con cuerpo crudo.
 - [ ] Idempotencia probada con evento duplicado.
 - [ ] Ningún dato de tarjeta almacenado ni registrado en logs.
-- [ ] **Cupo de 6,000 aplicado en transacción; probado con compras concurrentes.**
+- [ ] **Cupo total (8,000, configurable en `aforo_total_boletos`) aplicado en transacción; probado con compras concurrentes.**
 
 ### Lotes y boletos pre-generados
 - [ ] **Generación de lotes restringida a superadmin; probado con sesión de admin → 403.**
