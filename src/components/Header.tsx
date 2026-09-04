@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { MobileNav } from "@/components/MobileNav";
 import { ProgramasDropdown } from "@/components/ProgramasDropdown";
+import { ComiteDropdown } from "@/components/ComiteDropdown";
 
 const ENLACES = [
   { href: "/concursos", label: "Concursos" },
@@ -39,6 +40,7 @@ export function Header() {
 
         <nav className="ml-10 hidden flex-1 items-center justify-between text-base font-semibold text-slate-300 md:flex lg:ml-16">
           <ProgramasDropdown />
+          <ComiteDropdown />
           {ENLACES.map((enlace) => (
             <Link
               key={enlace.href}

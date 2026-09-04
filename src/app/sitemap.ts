@@ -16,6 +16,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${baseUrl}/contacto`, lastModified: ahora, changeFrequency: "yearly", priority: 0.5 },
     { url: `${baseUrl}/historico`, lastModified: ahora, changeFrequency: "yearly", priority: 0.4 },
     { url: `${baseUrl}/homenajeado`, lastModified: ahora, changeFrequency: "yearly", priority: 0.5 },
+    { url: `${baseUrl}/comite-organizador`, lastModified: ahora, changeFrequency: "yearly", priority: 0.5 },
+    { url: `${baseUrl}/mensaje-bienvenida`, lastModified: ahora, changeFrequency: "yearly", priority: 0.5 },
   ];
 
   const concursos = await getConcursos();

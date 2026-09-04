@@ -77,6 +77,20 @@ function corregirEspaciado(texto: string): string {
   return texto.replace(/^"|"$/g, "").replace(/([,:])(\S)/g, "$1 $2");
 }
 
+// Quita acentos (NFD + descarta marcas diacríticas), sube a mayúsculas y
+// colapsa espacios -- para comparar dos textos que deberían referirse a lo
+// mismo pero difieren en acentuación (ver comité organizador más abajo).
+const RANGO_DIACRITICOS = new RegExp("[\\u0300-\\u036f]", "g");
+
+function normalizarTexto(s: string): string {
+  return s
+    .normalize("NFD")
+    .replace(RANGO_DIACRITICOS, "")
+    .toUpperCase()
+    .trim()
+    .replace(/\s+/g, " ");
+}
+
 // ---------- Storage ----------
 
 async function subirImagen(
@@ -256,16 +270,22 @@ async function main() {
     "utf8"
   );
   const comiteDir = path.join(IMAGENES_DIR, "Fotos doctores/Comite organizador");
-  const archivosComite = readdirSync(comiteDir);
-  const fotoPorNumero = new Map<number, string>();
+  const archivosComite = readdirSync(comiteDir).filter((f) => /\.(jpe?g|png)$/i.test(f));
+  // A diferencia de módulos/concursos, estos archivos se nombran por CARGO
+  // ("COORDINADOR GENERAL.jpg"), no por número -- coincide por texto
+  // normalizado (sin acentos, mayúsculas, espacios colapsados) contra el
+  // cargo del .txt, porque la acentuación entre archivo y .txt no siempre
+  // coincide (ej. archivo "...TESORERIA.jpg" sin acento vs. .txt
+  // "...TESORERÍA" con acento).
+  const fotoPorCargo = new Map<string, string>();
   for (const archivo of archivosComite) {
-    const m = archivo.match(/^(\d+)-/);
-    if (m) fotoPorNumero.set(Number(m[1]), path.join(comiteDir, archivo));
+    const base = archivo.replace(/\.(jpe?g|png)$/i, "");
+    fotoPorCargo.set(normalizarTexto(base), path.join(comiteDir, archivo));
   }
 
   let comiteSembrado = 0;
   for (const { numero, cargo, nombre } of parseComite(comiteTxt)) {
-    const fotoPath = fotoPorNumero.get(numero);
+    const fotoPath = fotoPorCargo.get(normalizarTexto(cargo));
     let fotoUrl: string | undefined;
     if (fotoPath) {
       fotoUrl = await subirImagen(supabase, fotoPath, `comite/${numero}.jpg`);

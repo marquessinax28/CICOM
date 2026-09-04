@@ -10,6 +10,12 @@ const PROGRAMAS_ITEMS = [
   { href: "/programas#cursos-talleres", label: "Cursos y talleres" },
 ];
 
+const COMITE_ITEMS = [
+  { href: "/comite-organizador", label: "Comité Organizador" },
+  { href: "/homenajeado", label: "Profesor Homenajeado" },
+  { href: "/mensaje-bienvenida", label: "Mensaje de Bienvenida" },
+];
+
 const ENLACES = [
   { href: "/concursos", label: "Concursos" },
   { href: "/#sedes", label: "Sedes" },
@@ -55,6 +61,19 @@ export function MobileNav() {
         {PROGRAMAS_ITEMS.map((item, i) => (
           <Link
             key={`${item.href}-${i}`}
+            href={item.href}
+            className="rounded-md px-3 py-2.5 text-sm font-medium text-slate-200 hover:bg-white/10"
+          >
+            {item.label}
+          </Link>
+        ))}
+
+        <p className="mb-1 mt-3 px-3 text-xs font-semibold uppercase tracking-wider text-slate-500">
+          Comité Organizador
+        </p>
+        {COMITE_ITEMS.map((item) => (
+          <Link
+            key={item.href}
             href={item.href}
             className="rounded-md px-3 py-2.5 text-sm font-medium text-slate-200 hover:bg-white/10"
           >
