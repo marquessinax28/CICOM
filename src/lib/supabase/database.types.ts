@@ -682,6 +682,16 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      fn_crear_boleto_digital: {
+        Args: {
+          p_correo: string
+          p_folio: string
+          p_nombre: string
+          p_orden_id: number
+          p_password_hash: string
+        }
+        Returns: number
+      }
       fn_marcar_orden_pagada: {
         Args: {
           p_amount_received_centavos: number

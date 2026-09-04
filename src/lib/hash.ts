@@ -39,3 +39,40 @@ export function generarTokenSesionCompra(): string {
 export function hashTokenSesionCompra(token: string): string {
   return createHash("sha256").update(token).digest("hex");
 }
+
+// Alfabeto sin caracteres ambiguos (sin 0/O, 1/l/I) -- mismo que exige el
+// CHECK de boletos.folio en la migración de esquema. Folio y contraseña de
+// boleto comparten alfabeto; solo cambia la longitud (CLAUDE.md sección 2).
+const ALFABETO_SIN_AMBIGUOS = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ";
+
+function cadenaAleatoria(longitud: number): string {
+  const bytes = randomBytes(longitud);
+  let resultado = "";
+  for (let i = 0; i < longitud; i++) {
+    // Módulo sobre un byte (0-255) contra un alfabeto de 33 símbolos no es
+    // uniforme (255 no es múltiplo de 33) -- el sesgo es mínimo y aceptable
+    // aquí porque folio/contraseña no son la única defensa (bloqueo
+    // progresivo + Turnstile ya cubren fuerza bruta, CLAUDE.md sección 2);
+    // randomInt() sería exacto pero exige un límite superior fijo por
+    // llamada, más lento para generar 12 caracteres uno por uno sin
+    // ganancia real de seguridad en este caso.
+    resultado += ALFABETO_SIN_AMBIGUOS[(bytes[i] ?? 0) % ALFABETO_SIN_AMBIGUOS.length];
+  }
+  return resultado;
+}
+
+export function generarFolio(): string {
+  return cadenaAleatoria(12);
+}
+
+export function generarPasswordBoleto(): string {
+  return cadenaAleatoria(8);
+}
+
+export async function hashPasswordBoleto(password: string): Promise<string> {
+  return bcrypt.hash(password, BCRYPT_COST);
+}
+
+export async function compararPasswordBoleto(password: string, hash: string): Promise<boolean> {
+  return bcrypt.compare(password, hash);
+}

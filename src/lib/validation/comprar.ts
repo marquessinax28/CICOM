@@ -40,9 +40,14 @@ export const verificarCodigoSchema = z
 // cantidad tiene este trato porque no tiene NINGÚN efecto en el servidor,
 // a diferencia de un campo de precio o de rol que sí podría explotarse si
 // alguien lo leyera por accidente en el futuro.
+// nombre tiene el mismo tope (120) que boletos.nombre_completo -- es el
+// destino final de este valor (se dibuja en el PDF del boleto), así que el
+// límite se aplica aquí, en el borde, no solo confiando en el CHECK de la
+// base de datos.
 export const crearCheckoutSchema = z
   .object({
     sesionToken: z.string().min(1),
+    nombre: z.string().trim().min(1).max(120),
     categoria: z.string().trim().min(1).max(60).default("general"),
     turnstileToken: z.string().min(1),
     cantidad: z.unknown().optional(),

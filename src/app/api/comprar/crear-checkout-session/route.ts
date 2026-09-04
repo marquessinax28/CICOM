@@ -38,7 +38,7 @@ export async function POST(request: Request) {
     return errorEsperado(400, "Datos de compra inválidos.");
   }
 
-  const { sesionToken, categoria, turnstileToken } = parsed.data;
+  const { sesionToken, nombre, categoria, turnstileToken } = parsed.data;
 
   const turnstileOk = await verifyTurnstile(turnstileToken, ip);
   if (!turnstileOk) {
@@ -85,7 +85,7 @@ export async function POST(request: Request) {
   try {
     ordenId = await consultarConReintento(() =>
       supabase.rpc("fn_reservar_orden_digital", {
-        p_nombre: correo,
+        p_nombre: nombre,
         p_correo: correo,
         p_categoria: categoria,
         p_precio_unitario_centavos: precio.precioCentavos,

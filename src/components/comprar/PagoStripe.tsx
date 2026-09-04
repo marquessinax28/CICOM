@@ -38,11 +38,14 @@ function FormularioPago() {
     setEnviando(true);
     setMensajeError(null);
 
-    const { error } = await stripe.confirmPayment({
+    const { error, paymentIntent } = await stripe.confirmPayment({
       elements,
       // if_required: la mayoría de los pagos con tarjeta en modo prueba se
       // confirman sin salir de la página; solo los métodos que exigen
-      // redirección (ej. algunos bancos) navegan a return_url.
+      // redirección (ej. algunos bancos) navegan a return_url (que ya
+      // lleva ?payment_intent=... porque Stripe lo agrega él mismo en ese
+      // caso, igual que se agrega a mano abajo para el camino sin
+      // redirección).
       redirect: "if_required",
       confirmParams: {
         return_url: `${window.location.origin}/comprar-boleto/exito`,
@@ -55,7 +58,15 @@ function FormularioPago() {
       return;
     }
 
-    router.push("/comprar-boleto/exito");
+    // La página de éxito necesita el id del PaymentIntent para consultar
+    // /api/comprar/estado-orden y /api/comprar/descargar-boleto -- es el
+    // mismo id que stripe_payment_intent_id en ordenes_compra, con
+    // suficiente entropía para no ser adivinable (ver el comentario en
+    // estado-orden/route.ts).
+    const destino = paymentIntent
+      ? `/comprar-boleto/exito?payment_intent=${encodeURIComponent(paymentIntent.id)}`
+      : "/comprar-boleto/exito";
+    router.push(destino);
   }
 
   return (

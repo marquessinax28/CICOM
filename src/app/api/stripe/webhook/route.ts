@@ -3,6 +3,7 @@ import type Stripe from "stripe";
 import { getStripe } from "@/lib/stripe";
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import { consultarConReintento } from "@/lib/supabase/retry";
+import { generarYEntregarBoletoDigital } from "@/lib/boletos/generar-boleto-digital";
 
 // Nota sobre el cuerpo crudo: a diferencia del Pages Router antiguo (que
 // necesitaba `export const config = { api: { bodyParser: false } }`), un
@@ -78,6 +79,14 @@ export async function POST(request: Request) {
           console.error(
             `[stripe webhook] payment_intent.succeeded ${paymentIntent.id}: monto recibido no coincide con la orden ${fila.id}, marcada fallido`
           );
+        } else if (fila?.estado === "pagado" && !fila.ya_estaba_pagada) {
+          // Fase 5: se genera el boleto solo la PRIMERA vez que esta orden
+          // pasa a 'pagado' -- si ya_estaba_pagada es true, un evento
+          // duplicado (o un reintento que sí llegó a ejecutarse) ya generó
+          // el boleto antes; generarYEntregarBoletoDigital además falla
+          // cerrado por su cuenta (23505 sobre boletos.orden_id único) si
+          // de todas formas se le llamara dos veces.
+          await generarYEntregarBoletoDigital(supabase, fila.id);
         }
       } catch (error) {
         // orden_no_encontrada: sí lanza (no hay ningún UPDATE previo que
@@ -119,15 +128,6 @@ export async function POST(request: Request) {
       // Otros eventos (ej. payment_intent.created) no requieren acción.
       break;
   }
-
-  // ------------------------------------------------------------
-  // PUNTO DE EXTENSIÓN — FASE 5 (generación de boletos digitales)
-  // ------------------------------------------------------------
-  // fn_marcar_orden_pagada ya deja documentado, en su propio cuerpo, dónde
-  // debe engancharse la generación de folio + contraseña + envío del boleto
-  // una vez que la orden queda en estado 'pagado'. Fase 4 solo registra la
-  // orden -- no generar boletos todavía.
-  // ------------------------------------------------------------
 
   return NextResponse.json({ received: true });
 }

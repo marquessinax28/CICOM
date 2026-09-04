@@ -111,6 +111,7 @@ describe("Fase 4 — prueba 3: el precio del servidor prevalece", () => {
     const respuesta = await POST(
       requestJson({
         sesionToken,
+        nombre: "Prueba Precio Servidor",
         categoria: "general",
         turnstileToken: "token-de-prueba",
       })
@@ -142,6 +143,7 @@ describe("Fase 4 — prueba 3: el precio del servidor prevalece", () => {
       const respuesta = await POST(
         requestJson({
           sesionToken,
+          nombre: "Prueba Precio Servidor",
           categoria: "general",
           turnstileToken: "token-de-prueba",
           cantidad,

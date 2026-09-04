@@ -57,6 +57,7 @@ function WidgetTurnstile({ onToken }: { onToken: (token: string) => void }) {
 export function CompraBoletoForm() {
   const [paso, setPaso] = useState<Paso>("correo");
   const [correo, setCorreo] = useState("");
+  const [nombre, setNombre] = useState("");
   const [sesionToken, setSesionToken] = useState("");
   const [precios, setPrecios] = useState<Precio[]>([]);
   const [clientSecret, setClientSecret] = useState("");
@@ -163,6 +164,7 @@ export function CompraBoletoForm() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         sesionToken,
+        nombre,
         categoria: precioVigente?.categoria ?? "general",
         turnstileToken,
       }),
@@ -285,15 +287,39 @@ export function CompraBoletoForm() {
               <p className="mt-1 text-sm text-slate-400">Cargando precio...</p>
             )}
           </div>
+          <div>
+            <label htmlFor="nombre" className="block text-sm font-medium text-slate-200">
+              Nombre completo
+            </label>
+            <input
+              id="nombre"
+              name="nombre"
+              type="text"
+              required
+              maxLength={120}
+              value={nombre}
+              onChange={(evento) => setNombre(evento.target.value)}
+              className="mt-1.5 w-full rounded-lg border border-white/20 bg-white/5 px-4 py-2.5 text-base text-white focus:border-dorado focus:outline-none"
+            />
+            <p className="mt-1.5 text-xs text-slate-400">
+              Así aparecerá impreso en tu boleto y en tu certificado.
+            </p>
+          </div>
           <p className="text-xs text-slate-400">
-            Un boleto por compra, a nombre de <span className="text-slate-300">{correo}</span>. Si
-            quieres varios, repite la compra con cada correo.
+            Un boleto por compra, ligado al correo{" "}
+            <span className="text-slate-300">{correo}</span>. Si quieres varios, repite la compra
+            con cada correo.
           </p>
           <WidgetTurnstile onToken={setTurnstileToken} />
           {mensajeError && <FormAlert tipo="error" mensaje={mensajeError} incidentId={incidentId} />}
           <button
             type="submit"
-            disabled={enviando || !precioVigente || (Boolean(TURNSTILE_SITE_KEY) && !turnstileToken)}
+            disabled={
+              enviando ||
+              !precioVigente ||
+              !nombre.trim() ||
+              (Boolean(TURNSTILE_SITE_KEY) && !turnstileToken)
+            }
             className="self-start rounded-lg bg-dorado px-6 py-2.5 text-sm font-semibold text-navy disabled:opacity-60"
           >
             {enviando ? "Preparando pago..." : "Continuar al pago"}

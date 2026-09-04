@@ -37,6 +37,58 @@ function plantillaCodigoVerificacion(codigo: string): string {
   `.trim();
 }
 
+// Igual que la de arriba: estilos inline, se renderiza en el cliente de
+// correo del destinatario, nunca en nuestro sitio.
+function plantillaBoletoDigital(nombre: string): string {
+  return `
+    <div style="font-family: Georgia, 'Times New Roman', serif; max-width: 480px; margin: 0 auto; padding: 32px 24px; background: #141736; color: #e7e9f5;">
+      <p style="font-size: 12px; letter-spacing: 0.1em; color: #94a3b8; text-transform: uppercase; margin: 0 0 4px;">XXXIV CICOM</p>
+      <h1 style="font-size: 20px; margin: 0 0 16px; color: #ffffff;">Tu boleto digital</h1>
+      <p style="font-size: 15px; line-height: 1.6; margin: 0 0 16px;">
+        Hola ${nombre}, adjunto va tu boleto para el XXXIV CICOM. Contiene tu folio y contraseña --
+        consérvalo, son la llave para descargar tu certificado al cierre del congreso.
+      </p>
+      <p style="font-size: 13px; line-height: 1.6; color: #94a3b8; margin: 0;">
+        Si no reconoces esta compra, contáctanos respondiendo este correo.
+      </p>
+    </div>
+  `.trim();
+}
+
+export async function enviarBoletoDigital(
+  correo: string,
+  nombre: string,
+  pdfBoleto: Uint8Array
+): Promise<void> {
+  const from = process.env.RESEND_FROM_EMAIL;
+  if (!from) {
+    throw new Error("Falta RESEND_FROM_EMAIL en el entorno");
+  }
+  const replyTo = process.env.CONTACTO_SOPORTE_EMAIL;
+  if (!replyTo) {
+    throw new Error("Falta CONTACTO_SOPORTE_EMAIL en el entorno");
+  }
+
+  const resend = getResend();
+  const { error } = await resend.emails.send({
+    from,
+    to: correo,
+    replyTo,
+    subject: "Tu boleto digital — XXXIV CICOM",
+    html: plantillaBoletoDigital(nombre),
+    attachments: [
+      {
+        filename: "boleto-cicom.pdf",
+        content: Buffer.from(pdfBoleto),
+      },
+    ],
+  });
+
+  if (error) {
+    throw new Error(`Resend error: ${error.message}`);
+  }
+}
+
 export async function enviarCodigoVerificacion(
   correo: string,
   codigo: string
