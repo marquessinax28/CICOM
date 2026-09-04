@@ -16,6 +16,11 @@ const cormorantGaramond = Cormorant_Garamond({
 const DESCRIPCION =
   "CICOM, Ciclo de Conferencias Médicas del Antiguo Hospital Civil de Guadalajara y el Hospital Civil Nuevo Juan I. Menchaca.";
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL;
+if (!SITE_URL) {
+  throw new Error("Falta NEXT_PUBLIC_SITE_URL en el entorno");
+}
+
 // resizes-content: cuando se abre el teclado en móvil, el navegador encoge
 // el viewport de layout (no solo el visual) -- así min-h-dvh y el flujo del
 // documento se recalculan y el botón de enviar no queda atrapado detrás del
@@ -29,7 +34,7 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://leonesporlasalud.com.mx"),
+  metadataBase: new URL(SITE_URL),
   title: {
     default: "CICOM — Ciclo de Conferencias Médicas",
     template: "%s — CICOM",
@@ -53,7 +58,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "CICOM — Ciclo de Conferencias Médicas",
     description: DESCRIPCION,
-    url: "https://leonesporlasalud.com.mx",
+    url: SITE_URL,
     siteName: "CICOM",
     locale: "es_MX",
     type: "website",
@@ -75,7 +80,7 @@ export default async function RootLayout({
     "@type": "MedicalOrganization",
     name: "CICOM — Ciclo de Conferencias Médicas",
     description: DESCRIPCION,
-    url: "https://leonesporlasalud.com.mx",
+    url: SITE_URL,
   };
 
   return (

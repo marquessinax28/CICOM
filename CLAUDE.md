@@ -69,7 +69,7 @@ Pasarela de pago: Stripe (Checkout / Payment Intents), sin facturación CFDI
 Correo transaccional: Resend (~15,000 envíos estimados: códigos, boletos, certificados)
 Rate limiting: contador centralizado (Upstash Redis o tabla en Supabase con bloqueo atómico)
 Anti-bot: Cloudflare Turnstile
-Dominio: leonesporlasalud.com.mx (registrado en GoDaddy)
+Dominio: leonesgruponegro.com.mx
 
 Datos personales tratados: nombre completo y correo electrónico del asistente. Nada más.
 Datos NO tratados: no se almacenan datos de tarjeta en ningún caso. No se pide teléfono,

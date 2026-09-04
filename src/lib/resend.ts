@@ -45,11 +45,16 @@ export async function enviarCodigoVerificacion(
   if (!from) {
     throw new Error("Falta RESEND_FROM_EMAIL en el entorno");
   }
+  const replyTo = process.env.CONTACTO_SOPORTE_EMAIL;
+  if (!replyTo) {
+    throw new Error("Falta CONTACTO_SOPORTE_EMAIL en el entorno");
+  }
 
   const resend = getResend();
   const { error } = await resend.emails.send({
     from,
     to: correo,
+    replyTo,
     subject: `${codigo} es tu código de verificación — CICOM`,
     html: plantillaCodigoVerificacion(codigo),
   });

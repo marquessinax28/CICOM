@@ -2,7 +2,10 @@ import type { MetadataRoute } from "next";
 import { getConcursos } from "@/lib/queries/concursos";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const baseUrl = "https://leonesporlasalud.com.mx";
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL;
+  if (!baseUrl) {
+    throw new Error("Falta NEXT_PUBLIC_SITE_URL en el entorno");
+  }
   const ahora = new Date();
 
   const rutasEstaticas: MetadataRoute.Sitemap = [

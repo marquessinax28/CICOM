@@ -46,7 +46,7 @@ Home en este orden: hero con edición/fechas/estado → profesor homenajeado (fo
 - **Upstash Redis** — contador compartido de rate limiting
 - **Cloudflare Turnstile** — anti-bot
 - **Vercel** — hosting y despliegue automático desde GitHub
-- Dominio: `leonesporlasalud.com.mx` (GoDaddy)
+- Dominio: `leonesgruponegro.com.mx`
 
 ## Modelo de datos y reglas de negocio
 

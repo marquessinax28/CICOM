@@ -10,11 +10,16 @@ import type { MetadataRoute } from "next";
 //   2. Cambiar el `disallow` de abajo por `allow: "/"` (con
 //      `disallow: ["/admin", "/api"]` como antes) para permitir el rastreo.
 export default function robots(): MetadataRoute.Robots {
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL;
+  if (!baseUrl) {
+    throw new Error("Falta NEXT_PUBLIC_SITE_URL en el entorno");
+  }
+
   return {
     rules: {
       userAgent: "*",
       disallow: "/",
     },
-    sitemap: "https://leonesporlasalud.com.mx/sitemap.xml",
+    sitemap: `${baseUrl}/sitemap.xml`,
   };
 }
