@@ -629,6 +629,52 @@ export type Database = {
           },
         ]
       }
+      // Parche manual -- tabla creada por
+      // supabase/migrations/20260904090200_reenvios_boleto.sql, pendiente
+      // de aplicar vía CLI (bloqueado en esta máquina, ver CLAUDE.md) y
+      // regenerar con `supabase gen types typescript --linked`. Reemplazar
+      // este bloque cuando eso ocurra.
+      reenvios_boleto: {
+        Row: {
+          accion: string
+          boleto_id: number
+          detalle: string | null
+          fecha: string
+          id: number
+          motivo: string
+          password_hash_anterior: string | null
+          resultado: string
+        }
+        Insert: {
+          accion: string
+          boleto_id: number
+          detalle?: string | null
+          fecha?: string
+          id?: number
+          motivo: string
+          password_hash_anterior?: string | null
+          resultado: string
+        }
+        Update: {
+          accion?: string
+          boleto_id?: number
+          detalle?: string | null
+          fecha?: string
+          id?: number
+          motivo?: string
+          password_hash_anterior?: string | null
+          resultado?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reenvios_boleto_boleto_id_fkey"
+            columns: ["boleto_id"]
+            isOneToOne: false
+            referencedRelation: "boletos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sedes: {
         Row: {
           coordenadas: unknown
