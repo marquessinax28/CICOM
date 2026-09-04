@@ -105,11 +105,15 @@ Esta pregunta puede cambiar bastante el alcance (y el presupuesto) del proyecto,
 | id | serial PK | |
 | nombre_comprador | text | |
 | correo_comprador | text | |
-| monto_total | numeric | |
+| monto_centavos | int | en centavos, no numeric — Stripe cobra en centavos |
 | stripe_payment_intent_id | text | referencia al pago real en Stripe — la fuente de verdad |
 | estado | text | pendiente / pagado / fallido / reembolsado |
-| cantidad_boletos | int | |
+| categoria | text | |
+| precio_unitario_centavos | int | precio resuelto al momento de la compra |
+| precios_boleto_id | int FK | fila de precios_boleto vigente al comprar — auditoría del tramo aplicado |
 | fecha_compra | timestamp | |
+
+Un boleto por compra (decisión del comité, Fase 4): no hay `cantidad_boletos`. Quien quiera varios hace varias compras.
 
 **`boletos`** — cada asistente individual
 | Campo | Tipo | Notas |

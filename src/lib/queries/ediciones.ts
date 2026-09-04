@@ -28,7 +28,10 @@ export async function getEdicionActual(): Promise<Edicion | null> {
   const data = await consultarConReintento(() =>
     supabase.from("ediciones").select(COLUMNAS).eq("es_actual", true).maybeSingle()
   );
-  return data;
+  // `estado` tiene un CHECK en Postgres que limita sus valores, pero el
+  // generador de tipos no traduce CHECK constraints a uniones -- solo ve
+  // `text`. La base garantiza el conjunto acotado; se estrecha aquí.
+  return data as Edicion | null;
 }
 
 export async function getEdicionesHistoricas(): Promise<Edicion[]> {
@@ -36,5 +39,5 @@ export async function getEdicionesHistoricas(): Promise<Edicion[]> {
   const data = await consultarConReintento(() =>
     supabase.from("ediciones").select(COLUMNAS).eq("es_actual", false).order("numero", { ascending: false })
   );
-  return data ?? [];
+  return (data as Edicion[] | null) ?? [];
 }

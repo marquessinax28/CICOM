@@ -8,7 +8,7 @@ import { getClientIp } from "@/lib/request-ip";
 import { errorEsperado, errorInesperado } from "@/lib/api-errors";
 import { hashTokenSesionCompra } from "@/lib/hash";
 import { getStripe } from "@/lib/stripe";
-import { hoyISO } from "@/lib/precios";
+import { obtenerPrecioVigente } from "@/lib/precios";
 
 export async function POST(request: Request) {
   const ip = getClientIp(request);
@@ -72,25 +72,12 @@ export async function POST(request: Request) {
   // Precio por tramos de fecha (septiembre $550, octubre $650, noviembre
   // $700 MXN, parametrizado en precios_boleto -- nunca fijo en código). El
   // tramo se resuelve con la fecha de HOY en el servidor, nunca con nada
-  // que mande el cliente.
-  const hoy = hoyISO();
+  // que mande el cliente. obtenerPrecioVigente lanza si no hay tramo
+  // activo -- nunca cobra un precio por defecto.
   let precio;
   try {
-    precio = await consultarConReintento(() =>
-      supabase
-        .from("precios_boleto")
-        .select("precio_centavos")
-        .eq("tipo_boleto", "digital")
-        .eq("categoria", categoria)
-        .eq("activo", true)
-        .lte("vigente_desde", hoy)
-        .or(`vigente_hasta.is.null,vigente_hasta.gte.${hoy}`)
-        .maybeSingle()
-    );
-  } catch (error) {
-    return errorInesperado(500, error);
-  }
-  if (!precio) {
+    precio = await obtenerPrecioVigente(supabase, categoria);
+  } catch {
     return errorEsperado(400, "Esa categoría de boleto no está disponible.");
   }
 
@@ -101,7 +88,8 @@ export async function POST(request: Request) {
         p_nombre: correo,
         p_correo: correo,
         p_categoria: categoria,
-        p_precio_unitario_centavos: precio.precio_centavos,
+        p_precio_unitario_centavos: precio.precioCentavos,
+        p_precios_boleto_id: precio.id,
       })
     );
   } catch (error) {
@@ -115,7 +103,16 @@ export async function POST(request: Request) {
     return errorInesperado(500, error);
   }
 
-  const montoTotalCentavos = precio.precio_centavos;
+  // fn_reservar_orden_digital nunca regresa null en la práctica -- o
+  // devuelve el id insertado, o lanza (capturado arriba). El tipo
+  // generado la marca `number | null` porque Postgres no distingue eso a
+  // nivel de tipos para una función escalar; este chequeo lo deja
+  // explícito para tsc y falla cerrado si alguna vez no se cumple.
+  if (ordenId === null) {
+    return errorInesperado(500, new Error("fn_reservar_orden_digital regresó null inesperadamente"));
+  }
+
+  const montoTotalCentavos = precio.precioCentavos;
 
   try {
     const stripe = getStripe();
@@ -124,7 +121,12 @@ export async function POST(request: Request) {
       currency: "mxn",
       receipt_email: correo,
       automatic_payment_methods: { enabled: true },
-      metadata: { orden_id: String(ordenId), categoria },
+      metadata: {
+        orden_id: String(ordenId),
+        categoria,
+        monto_centavos: String(montoTotalCentavos),
+        precios_boleto_id: String(precio.id),
+      },
     });
 
     await consultarConReintento(() =>

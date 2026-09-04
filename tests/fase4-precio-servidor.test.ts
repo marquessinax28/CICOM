@@ -43,6 +43,7 @@ describe("Fase 4 — prueba 3: el precio del servidor prevalece", () => {
   let correo: string;
   let sesionToken: string;
   let precioVigenteCentavos: number;
+  let precioVigenteId: number;
 
   beforeAll(async () => {
     correo = correoDePrueba("precio");
@@ -56,7 +57,7 @@ describe("Fase 4 — prueba 3: el precio del servidor prevalece", () => {
     const hoy = hoyISO();
     const { data } = await supabase
       .from("precios_boleto")
-      .select("precio_centavos")
+      .select("id, precio_centavos")
       .eq("tipo_boleto", "digital")
       .eq("categoria", "general")
       .eq("activo", true)
@@ -64,6 +65,7 @@ describe("Fase 4 — prueba 3: el precio del servidor prevalece", () => {
       .or(`vigente_hasta.is.null,vigente_hasta.gte.${hoy}`)
       .single();
 
+    precioVigenteId = data!.id;
     precioVigenteCentavos = data!.precio_centavos;
   });
 
@@ -119,12 +121,41 @@ describe("Fase 4 — prueba 3: el precio del servidor prevalece", () => {
     const supabase = createServiceRoleClient();
     const { data: orden } = await supabase
       .from("ordenes_compra")
-      .select("precio_unitario_centavos, monto_total, estado")
+      .select("precio_unitario_centavos, monto_centavos, precios_boleto_id, estado")
       .eq("correo_comprador", correo)
       .single();
 
+    // monto_centavos es entero -- comparación exacta, sin el margen de
+    // toBeCloseTo que hacía falta cuando la columna era numeric (pesos con
+    // decimales) y había que dividir entre 100 para comparar.
     expect(orden!.precio_unitario_centavos).toBe(precioVigenteCentavos);
-    expect(Number(orden!.monto_total)).toBeCloseTo(precioVigenteCentavos / 100, 2);
+    expect(orden!.monto_centavos).toBe(precioVigenteCentavos);
+    expect(orden!.precios_boleto_id).toBe(precioVigenteId);
     expect(orden!.estado).toBe("pendiente");
+  });
+
+  it("un boleto por compra: cantidad en el cuerpo no cambia lo que se cobra (se rechaza la petición completa)", async () => {
+    const respuesta = await POST(
+      requestJson({
+        sesionToken,
+        categoria: "general",
+        turnstileToken: "token-de-prueba",
+        cantidad: 5,
+      })
+    );
+
+    // No existe un modo "ignorar cantidad y cobrar un boleto": el schema
+    // no tiene ese campo, así que .strict() rechaza la petición completa
+    // -- más estricto que "ignorarlo en silencio", nunca se llega a crear
+    // un PaymentIntent con este cuerpo.
+    expect(respuesta.status).toBe(400);
+
+    const supabase = createServiceRoleClient();
+    const { data: ordenes } = await supabase
+      .from("ordenes_compra")
+      .select("id")
+      .eq("correo_comprador", correo);
+
+    expect(ordenes ?? []).toHaveLength(0);
   });
 });
