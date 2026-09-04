@@ -61,17 +61,30 @@ export async function POST(request: Request) {
         // real que se queda sin marcar 'pagado' por un desfase de reloj de
         // la infraestructura de Supabase es justo el caso que no queremos
         // dejar en manos únicamente del reintento (más lento) de Stripe.
-        await consultarConReintento(() =>
+        const resultado = await consultarConReintento(() =>
           supabase.rpc("fn_marcar_orden_pagada", {
             p_payment_intent_id: paymentIntent.id,
             p_amount_received_centavos: paymentIntent.amount_received,
           })
         );
+
+        // fn_marcar_orden_pagada NO lanza en el caso de monto que no
+        // coincide -- si lanzara, revertiría el UPDATE a 'fallido' que la
+        // función ya aplicó (una función de Postgres es una sola
+        // transacción implícita). Se registra como incidente para
+        // revisión humana, sin bloquear la respuesta 200 al webhook.
+        const fila = resultado?.[0];
+        if (fila?.estado === "fallido") {
+          console.error(
+            `[stripe webhook] payment_intent.succeeded ${paymentIntent.id}: monto recibido no coincide con la orden ${fila.id}, marcada fallido`
+          );
+        }
       } catch (error) {
-        // orden_no_encontrada / monto_no_coincide: se registran como
-        // incidente para revisión humana. Se responde 200 de todas formas
-        // -- un reintento de Stripe no va a resolver ninguno de los dos
-        // casos, y ya quedó auditado en eventos_stripe_procesados.
+        // orden_no_encontrada: sí lanza (no hay ningún UPDATE previo que
+        // se pueda perder). Se registra como incidente para revisión
+        // humana. Se responde 200 de todas formas -- un reintento de
+        // Stripe no va a resolver que la orden no exista, y ya quedó
+        // auditado en eventos_stripe_procesados.
         const rpcError = error as { message?: string };
         console.error(
           `[stripe webhook] payment_intent.succeeded ${paymentIntent.id}:`,

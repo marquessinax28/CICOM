@@ -24,16 +24,28 @@ export const verificarCodigoSchema = z
 // servidor a partir de `categoria` (una etiqueta, no un número) y de
 // precios_boleto. Ver CLAUDE.md sección 5.
 //
-// Tampoco hay campo de cantidad: un boleto digital por compra, decisión
-// del comité (el certificado es individual y se accede con el correo del
-// boleto). No es que "cantidad" se ignore -- no existe en el schema, así
-// que .strict() rechaza la petición completa si alguien lo manda, igual
-// que con cualquier campo de precio.
+// Un boleto digital por compra, decisión del comité: cada boleto lleva
+// folio y contraseña únicos y da acceso a un certificado a nombre de una
+// persona -- permitir varios boletos en una compra hace ambiguo a nombre
+// de quién se emite cada certificado. El monto que se cobra sale siempre
+// de obtenerPrecioVigente(), nunca de nada que mande el cliente.
+//
+// `cantidad` se declara a propósito (en vez de dejarla fuera del schema)
+// para que quede aceptada y completamente ignorada, sin rechazar la
+// petición: no participa en ninguna lógica, sin importar el valor (5, 0,
+// -1, lo que sea). Es una excepción deliberada a la regla general de este
+// archivo ("todo campo ajeno rechaza la petición completa", CLAUDE.md
+// sección 3) -- precio, categoría, rol y cualquier otro campo sensible
+// siguen rechazando la petición si aparecen sin estar declarados; solo
+// cantidad tiene este trato porque no tiene NINGÚN efecto en el servidor,
+// a diferencia de un campo de precio o de rol que sí podría explotarse si
+// alguien lo leyera por accidente en el futuro.
 export const crearCheckoutSchema = z
   .object({
     sesionToken: z.string().min(1),
     categoria: z.string().trim().min(1).max(60).default("general"),
     turnstileToken: z.string().min(1),
+    cantidad: z.unknown().optional(),
   })
   .strict();
 

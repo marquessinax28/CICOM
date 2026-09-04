@@ -4,13 +4,15 @@
 //
 // /api/comprar/crear-checkout-session no tiene NINGÚN campo de precio en su
 // schema (src/lib/validation/comprar.ts) -- el precio se calcula siempre
-// desde precios_boleto. Esta prueba comprueba las dos caras de esa regla:
-// 1) un campo ajeno como "precioCentavos" (o "cantidad" -- un boleto por
-//    compra, sin excepción) hace que la petición completa se rechace
-//    (schema .strict()), nunca que se "use con cuidado".
+// desde precios_boleto. Esta prueba comprueba tres cosas:
+// 1) un campo ajeno como "precioCentavos" hace que la petición completa se
+//    rechace (schema .strict()), nunca que se "use con cuidado".
 // 2) una petición legítima crea una orden cuyo monto en base de datos
 //    coincide exactamente con precios_boleto, sin importar qué tan barato
 //    "pida" el cliente.
+// 3) "cantidad" es la única excepción deliberada: un boleto por compra, sin
+//    excepción -- se acepta y se ignora sin error (nunca 400), sin importar
+//    el valor que mande el cliente (positivo, cero, negativo).
 
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 
@@ -77,7 +79,7 @@ describe("Fase 4 — prueba 3: el precio del servidor prevalece", () => {
     await limpiarDatosDePrueba(correo);
   });
 
-  it("rechaza por completo un cuerpo con un campo de precio/rol/cantidad ajeno al schema", async () => {
+  it("rechaza por completo un cuerpo con un campo de precio/rol ajeno al schema", async () => {
     const respuesta = await POST(
       requestJson({
         sesionToken,
@@ -85,12 +87,12 @@ describe("Fase 4 — prueba 3: el precio del servidor prevalece", () => {
         turnstileToken: "token-de-prueba",
         // Campos que un atacante intentaría colar: ninguno existe en el
         // schema -- .strict() debe tirar toda la petición, no solo ignorar
-        // estos campos en silencio. cantidad tampoco existe: un boleto
-        // digital por compra, sin excepción (decisión del comité).
+        // estos campos en silencio. (cantidad NO va en esta lista -- a
+        // diferencia de estos, sí está declarada en el schema a propósito
+        // para ignorarse sin rechazar la petición; ver los casos de abajo.)
         precioCentavos: 1,
         monto_total: 0.01,
         esAdmin: true,
-        cantidad: 5,
       })
     );
 
@@ -134,28 +136,37 @@ describe("Fase 4 — prueba 3: el precio del servidor prevalece", () => {
     expect(orden!.estado).toBe("pendiente");
   });
 
-  it("un boleto por compra: cantidad en el cuerpo no cambia lo que se cobra (se rechaza la petición completa)", async () => {
-    const respuesta = await POST(
-      requestJson({
-        sesionToken,
-        categoria: "general",
-        turnstileToken: "token-de-prueba",
-        cantidad: 5,
-      })
-    );
+  it.each([5, 0, -1])(
+    "un boleto por compra: cantidad=%i en el cuerpo se ignora, se cobra el precio de un solo boleto",
+    async (cantidad) => {
+      const respuesta = await POST(
+        requestJson({
+          sesionToken,
+          categoria: "general",
+          turnstileToken: "token-de-prueba",
+          cantidad,
+        })
+      );
 
-    // No existe un modo "ignorar cantidad y cobrar un boleto": el schema
-    // no tiene ese campo, así que .strict() rechaza la petición completa
-    // -- más estricto que "ignorarlo en silencio", nunca se llega a crear
-    // un PaymentIntent con este cuerpo.
-    expect(respuesta.status).toBe(400);
+      // cantidad está declarada en el schema a propósito para esto: se
+      // acepta (nunca 400) y no tiene ningún efecto -- se cobra siempre el
+      // precio de un solo boleto, sin importar qué cantidad mande el
+      // cliente (positiva, cero o negativa).
+      expect(respuesta.status).toBe(200);
+      const cuerpo = await respuesta.json();
+      expect(cuerpo.montoTotalCentavos).toBe(precioVigenteCentavos);
 
-    const supabase = createServiceRoleClient();
-    const { data: ordenes } = await supabase
-      .from("ordenes_compra")
-      .select("id")
-      .eq("correo_comprador", correo);
+      const supabase = createServiceRoleClient();
+      const { data: ordenes } = await supabase
+        .from("ordenes_compra")
+        .select("monto_centavos")
+        .eq("correo_comprador", correo);
 
-    expect(ordenes ?? []).toHaveLength(0);
-  });
+      // Una sola orden, por el precio de un solo boleto -- nunca cantidad
+      // órdenes ni el monto multiplicado.
+      const filas = ordenes ?? [];
+      expect(filas).toHaveLength(1);
+      expect(filas[0]?.monto_centavos).toBe(precioVigenteCentavos);
+    }
+  );
 });
