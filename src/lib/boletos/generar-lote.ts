@@ -62,6 +62,17 @@ async function subirConReintento(
   throw ultimoError;
 }
 
+// Instrumentación de tiempo por etapa (descubierto al diagnosticar
+// FUNCTION_INVOCATION_TIMEOUT en producción con cantidad=500: el cuello de
+// botella real era el hashing bcrypt secuencial, no Postgres ni Storage --
+// sin esto no había forma de saberlo). console.log en vez de console.time
+// porque el formato de console.time no siempre es buscable en los logs de
+// Vercel; un log de una sola línea por etapa sí.
+function medirEtapa(loteId: number | "pendiente", etapa: string, inicioMs: number): void {
+  const duracionMs = Date.now() - inicioMs;
+  console.log(`[lote ${loteId}] etapa=${etapa} ms=${duracionMs}`);
+}
+
 // Genera un lote completo: folios+contraseñas (CSPRNG), PDF (una página por
 // boleto) y Excel cifrado se construyen ANTES de tocar la base de datos --
 // si algo falla ahí, no se consumió cupo ni se creó nada, el superadmin
@@ -79,6 +90,10 @@ export async function generarLoteBoletos(
   cantidad: number,
   generadoPor: number
 ): Promise<ResultadoGeneracionLote> {
+  const inicioTotal = Date.now();
+  console.log(`[lote pendiente] inicio tipo=${tipo} cantidad=${cantidad}`);
+
+  let t = Date.now();
   const folios = new Set<string>();
   while (folios.size < cantidad) {
     folios.add(generarFolio());
@@ -92,9 +107,11 @@ export async function generarLoteBoletos(
     passwordsPlano.push(password);
     hashes.push(await hashPasswordBoleto(password));
   }
+  medirEtapa("pendiente", "credenciales", t);
 
   const datosPagina = listaFolios.map((folio, i) => ({ folio, password: passwordsPlano[i]! }));
 
+  t = Date.now();
   const { data: plantillaBlob, error: errorPlantilla } = await supabase.storage
     .from(BUCKET_PLANTILLAS_BOLETO)
     .download(RUTA_PLANTILLA_BOLETO_DIGITAL);
@@ -102,14 +119,20 @@ export async function generarLoteBoletos(
     throw errorPlantilla ?? new Error("No se pudo leer la plantilla del boleto.");
   }
   const plantillaPng = new Uint8Array(await plantillaBlob.arrayBuffer());
+  medirEtapa("pendiente", "descarga_plantilla", t);
 
+  t = Date.now();
   const pdfBytes = await generarPdfLoteBoletos(datosPagina, plantillaPng);
+  medirEtapa("pendiente", "pdf", t);
 
+  t = Date.now();
   const passwordExcel = generarPasswordAdmin();
   const excelBuffer = await generarExcelLoteCifrado(datosPagina, passwordExcel);
+  medirEtapa("pendiente", "excel", t);
 
   // A partir de aquí, cualquier error consumió cupo real -- ver comentario
   // de la función.
+  t = Date.now();
   const { data: loteId, error: errorRpc } = await supabase.rpc("fn_generar_lote_boletos", {
     p_tipo: tipo,
     p_cantidad: cantidad,
@@ -119,7 +142,9 @@ export async function generarLoteBoletos(
   });
   if (errorRpc) throw errorRpc;
   const idLote = loteId as number;
+  medirEtapa(idLote, "postgres", t);
 
+  t = Date.now();
   await subirConReintento(() =>
     supabase.storage
       .from(BUCKET_LOTES_BOLETOS)
@@ -128,13 +153,16 @@ export async function generarLoteBoletos(
         upsert: false,
       })
   );
+  medirEtapa(idLote, "subida_pdf", t);
 
+  t = Date.now();
   await subirConReintento(() =>
     supabase.storage.from(BUCKET_LOTES_BOLETOS).upload(rutaExcelLote(idLote), excelBuffer, {
       contentType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
       upsert: false,
     })
   );
+  medirEtapa(idLote, "subida_excel", t);
 
   const { data: cupoFila } = await supabase
     .from("cupos_boleto")
@@ -148,6 +176,8 @@ export async function generarLoteBoletos(
 
   const cupoMaximo = cupoFila?.cupo_maximo ?? 0;
   const total = generadosTotal ?? 0;
+
+  medirEtapa(idLote, "TOTAL", inicioTotal);
 
   return {
     loteId: idLote,

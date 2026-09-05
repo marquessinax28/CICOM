@@ -10,11 +10,29 @@ import {
 } from "@/lib/admin/sesion";
 import { generarLoteBoletos } from "@/lib/boletos/generar-lote";
 
-// pdf-lib construyendo cientos de páginas + subir dos archivos puede tardar
-// más que el límite por defecto de una función serverless.
-export const maxDuration = 60;
+// Confirmado en producción (Vercel Pro): con cantidad=500, hashear las
+// contraseñas con bcrypt costo 12 -- secuencial, una por una -- domina el
+// tiempo total y por sí solo se acerca a los 60s por defecto (medido
+// localmente: ~112s para 500). 300 es el máximo permitido en el plan Pro.
+export const maxDuration = 300;
 
+// Red de seguridad: antes solo la llamada a generarLoteBoletos estaba en un
+// try/catch -- cualquier excepción ANTES de eso (ej. una consulta de
+// reautenticación que falla por un hipo de red) se escapaba sin capturar y
+// Next devolvía su página de error HTML por defecto. El panel no puede
+// parsear eso como JSON y caía en el mensaje genérico sin ninguna pista
+// (así se vio "No se pudo generar el lote." sin más detalle). Ahora
+// CUALQUIER falla, conocida o no, siempre vuelve como JSON categorizado con
+// un id de incidente.
 export async function POST(request: Request) {
+  try {
+    return await manejarGenerarLote(request);
+  } catch (error) {
+    return errorInesperado(500, error);
+  }
+}
+
+async function manejarGenerarLote(request: Request): Promise<Response> {
   if (!origenEsConfiable(request)) {
     return errorEsperado(403, "Origen de la petición no confiable.");
   }
@@ -86,12 +104,21 @@ export async function POST(request: Request) {
     const resultadoLote = await generarLoteBoletos(supabase, tipo, cantidad, sesion.administradorId);
     return NextResponse.json({ ok: true, ...resultadoLote });
   } catch (error) {
+    // Causas conocidas de fn_generar_lote_boletos (migración
+    // 20260904090500) distinguidas explícitamente -- el resto cae en el
+    // 500 genérico con id de incidente para poder correlacionar con el log.
     const rpcError = error as { code?: string; message?: string };
     if (rpcError.message?.includes("cupo_agotado")) {
       return errorEsperado(
         409,
         `No hay cupo suficiente para generar ${cantidad} boletos de tipo "${tipo}".`
       );
+    }
+    if (rpcError.message?.includes("cupo_no_configurado")) {
+      return errorEsperado(500, `El tipo "${tipo}" no tiene un cupo configurado en cupos_boleto.`);
+    }
+    if (rpcError.message?.includes("tipo_invalido")) {
+      return errorEsperado(400, `Tipo inválido: "${tipo}".`);
     }
     return errorInesperado(500, error);
   }
