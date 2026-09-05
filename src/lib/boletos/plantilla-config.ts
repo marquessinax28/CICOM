@@ -25,6 +25,19 @@ export function rutaPdfBoletoDigital(ordenId: number): string {
   return `orden-${ordenId}.pdf`;
 }
 
+// Bucket privado con los dos archivos de cada lote (PDF + Excel cifrado).
+// Aquí (sin guard) y no en generar-lote.ts porque
+// scripts/reemitir-archivo-lote.ts necesita estas rutas fuera de Next;
+// generar-lote.ts las re-exporta para no romper los imports existentes.
+export const BUCKET_LOTES_BOLETOS = "lotes-boletos";
+
+export function rutaPdfLote(loteId: number): string {
+  return `lote-${loteId}.pdf`;
+}
+export function rutaExcelLote(loteId: number): string {
+  return `lote-${loteId}.xlsx`;
+}
+
 // Dimensiones nativas del PNG, en píxeles. El PDF generado usa estas
 // mismas dimensiones como tamaño de página en puntos (1px = 1pt): así las
 // coordenadas de abajo -- extraídas directamente del PNG -- no necesitan

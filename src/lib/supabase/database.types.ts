@@ -684,6 +684,47 @@ export type Database = {
       // de aplicar vía CLI (bloqueado en esta máquina, ver CLAUDE.md) y
       // regenerar con `supabase gen types typescript --linked`. Reemplazar
       // este bloque cuando eso ocurra.
+      // Parche manual -- tabla creada por
+      // supabase/migrations/20260904090600_reemisiones_lote.sql, pendiente
+      // de aplicar vía CLI y regenerar tipos.
+      reemisiones_lote: {
+        Row: {
+          archivo: string
+          detalle: string | null
+          fecha: string
+          id: number
+          lote_id: number
+          motivo: string
+          resultado: string
+        }
+        Insert: {
+          archivo: string
+          detalle?: string | null
+          fecha?: string
+          id?: number
+          lote_id: number
+          motivo: string
+          resultado: string
+        }
+        Update: {
+          archivo?: string
+          detalle?: string | null
+          fecha?: string
+          id?: number
+          lote_id?: number
+          motivo?: string
+          resultado?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reemisiones_lote_lote_id_fkey"
+            columns: ["lote_id"]
+            isOneToOne: false
+            referencedRelation: "lotes_boletos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       reenvios_boleto: {
         Row: {
           accion: string

@@ -12,15 +12,15 @@ import { generarExcelLoteCifrado } from "@/lib/boletos/excel-lote";
 import {
   BUCKET_PLANTILLAS_BOLETO,
   RUTA_PLANTILLA_BOLETO_DIGITAL,
+  BUCKET_LOTES_BOLETOS,
+  rutaPdfLote,
+  rutaExcelLote,
 } from "@/lib/boletos/plantilla-config";
 
-export const BUCKET_LOTES_BOLETOS = "lotes-boletos";
-export function rutaPdfLote(loteId: number): string {
-  return `lote-${loteId}.pdf`;
-}
-export function rutaExcelLote(loteId: number): string {
-  return `lote-${loteId}.xlsx`;
-}
+// Re-exportadas para no romper los imports existentes (rutas de API,
+// tests) -- viven en plantilla-config.ts (sin guard) porque
+// scripts/reemitir-archivo-lote.ts las necesita fuera de Next.
+export { BUCKET_LOTES_BOLETOS, rutaPdfLote, rutaExcelLote };
 
 export type TipoLote = "fisico" | "beca_residente" | "colchon";
 
