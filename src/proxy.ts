@@ -1,7 +1,29 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import {
+  crearClienteAdminSupabase,
+  verificarSesionAdmin,
+  NOMBRE_COOKIE_SESION_ADMIN,
+} from "@/lib/admin/sesion-nucleo";
 
-export function proxy(request: NextRequest) {
+export async function proxy(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+
+  // Gate rápido para /admin (salvo /admin/login, que es la página pública
+  // de acceso): mejor UX (redirige antes de renderizar nada), pero NO es la
+  // única verificación -- src/app/admin/(protegido)/layout.tsx vuelve a
+  // comprobar la sesión de forma independiente, porque la propia
+  // documentación de Next.js advierte que un cambio futuro al matcher de
+  // proxy podría dejar una ruta descubierta sin que nadie lo note.
+  if (pathname.startsWith("/admin") && pathname !== "/admin/login") {
+    const token = request.cookies.get(NOMBRE_COOKIE_SESION_ADMIN)?.value;
+    const supabase = crearClienteAdminSupabase();
+    const sesion = await verificarSesionAdmin(supabase, token);
+    if (!sesion) {
+      return NextResponse.redirect(new URL("/admin/login", request.url));
+    }
+  }
+
   const nonce = Buffer.from(crypto.randomUUID()).toString("base64");
 
   // El webpack dev server de Next.js aplica sus actualizaciones en caliente

@@ -14,27 +14,37 @@ export type Database = {
   }
   public: {
     Tables: {
+      // Parche manual -- correo->usuario e intentos_fallidos/bloqueado_hasta
+      // vienen de supabase/migrations/20260904090400_admin_auth.sql,
+      // pendiente de aplicar vía CLI (bloqueado en esta máquina, ver
+      // CLAUDE.md) y regenerar con `supabase gen types typescript --linked`.
       administradores: {
         Row: {
-          correo: string
+          bloqueado_hasta: string | null
           id: number
+          intentos_fallidos: number
           nombre: string
           password_hash: string
           rol: string
+          usuario: string
         }
         Insert: {
-          correo: string
+          bloqueado_hasta?: string | null
           id?: number
+          intentos_fallidos?: number
           nombre: string
           password_hash: string
           rol: string
+          usuario: string
         }
         Update: {
-          correo?: string
+          bloqueado_hasta?: string | null
           id?: number
+          intentos_fallidos?: number
           nombre?: string
           password_hash?: string
           rol?: string
+          usuario?: string
         }
         Relationships: []
       }
@@ -732,6 +742,44 @@ export type Database = {
           nombre?: string
         }
         Relationships: []
+      }
+      // Parche manual -- tabla creada por
+      // supabase/migrations/20260904090400_admin_auth.sql, pendiente de
+      // aplicar vía CLI y regenerar tipos.
+      sesiones_admin: {
+        Row: {
+          administrador_id: number
+          creada_en: string
+          expira_en: string
+          id: number
+          token_hash: string
+          ultima_actividad: string
+        }
+        Insert: {
+          administrador_id: number
+          creada_en?: string
+          expira_en: string
+          id?: number
+          token_hash: string
+          ultima_actividad?: string
+        }
+        Update: {
+          administrador_id?: number
+          creada_en?: string
+          expira_en?: string
+          id?: number
+          token_hash?: string
+          ultima_actividad?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sesiones_admin_administrador_id_fkey"
+            columns: ["administrador_id"]
+            isOneToOne: false
+            referencedRelation: "administradores"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       sesiones_compra: {
         Row: {

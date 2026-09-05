@@ -150,6 +150,8 @@ Actúas como desarrollador full-stack **con responsabilidad de seguridad**. Este
 - **Cookies de sesión:** `HttpOnly`, `Secure`, `SameSite=Lax` (o `Strict` en el panel admin), `Path=/`, con expiración e **inactividad máxima**. Rota el identificador de sesión al autenticar. Nada de tokens de sesión en `localStorage`.
 - **Protección CSRF** en todo formulario o petición que cambie estado: token sincronizado o verificación estricta de `Origin`/`Sec-Fetch-Site`. `SameSite` solo no es suficiente.
 - **Panel administrativo:** MFA obligatoria, cuentas nominales (nada de un usuario `admin` compartido), sesiones más cortas, y registro de toda acción sensible.
+  - **Desviación documentada (Fase 6a, 2026-09-04): MFA diferido, no implementado todavía.** Hoy son dos cuentas fijas, sin registro público, con contraseñas de 24 caracteres generadas por CSPRNG (`scripts/crear-cuenta-admin.ts`) y entregadas en persona -- nadie las eligió ni las memoriza. El riesgo que MFA mitiga principalmente (reutilización de contraseñas entre sitios, phishing de una contraseña que la persona sí recuerda) no aplica a una credencial así. Se compensa con Turnstile, rate limiting por IP y por usuario, y bloqueo progresivo (ver más abajo). **Riesgo residual:** si una de estas contraseñas se filtra por una vía física (se ve, se comparte, se guarda mal), la contraseña sola basta para entrar -- la mitigación disponible es `scripts/rotar-password-admin.ts`, que además invalida de inmediato todas las sesiones activas de esa cuenta al rotar. **Revisar esta decisión** cuando el panel crezca (más funciones sensibles) o entren más cuentas (más superficie, ya no "dos personas de confianza total").
+  - **Reautenticación (step-up) para generación de lotes (Fase 6b):** aunque haya sesión activa, esa acción específica debe volver a pedir la contraseña antes de ejecutarse -- es irreversible y consume cupo real. Se construye junto con la generación de lotes, no en Fase 6a.
 - **Separación de roles admin / superadmin.** Son dos niveles distintos y el servidor debe distinguirlos en cada petición:
   - `admin`: consulta las tablas de boletos, concursos, talleres y mensajes de contacto. **No** genera lotes, **no** modifica cupos, **no** sube plantillas de certificado.
   - `superadmin`: además de lo anterior, genera lotes de boletos sin pago, modifica los cupos máximos por tipo y sube el diseño del certificado.
@@ -426,12 +428,16 @@ Antes de abrir la venta al público falta:
       `disallow: ["/admin", "/api", "/comprar-boleto/exito"]`. Verificado
       `NEXT_PUBLIC_SITE_URL` en producción = `https://leonesgruponegro.com.mx`;
       `sitemap.ts` ya excluía admin/api/éxito de compra sin necesitar cambios.
-- [ ] **Cambiar Stripe a modo live:** reemplazar las claves de prueba
-      (`sk_test_...` / `pk_test_...`) por las claves live en las variables de
-      entorno de producción de Vercel, y crear un **endpoint de webhook live
-      separado** en el dashboard de Stripe (no reutilizar el de test) con su
-      propio `STRIPE_WEBHOOK_SECRET` (`whsec_...`) — cada modo tiene su propio
-      secreto de firma.
+- [x] **Cambiar Stripe a modo live** (2026-09-04): claves live activas en
+      producción, con webhook live propio y una compra digital real
+      verificada de punta a punta (folio, contraseña, PDF, correo, descarga
+      firmada).
 - [ ] **Contratar Resend Pro:** el plan actual no cubre el volumen estimado
       (~15,000 envíos entre códigos, boletos y certificados); actualizar antes
       de que el volumen real empiece a fallar por límite de envíos.
+- [ ] **Protección CSRF en las rutas anteriores a Fase 6a** (anotado
+      2026-09-04): `crear-checkout-session`, `verificar-codigo`,
+      `solicitar-codigo` y `contacto` no verifican `Origin`/`Sec-Fetch-Site`
+      -- hueco preexistente descubierto al construir el login de admin, que
+      sí lleva esa verificación desde el inicio (`src/lib/origin-check.ts`).
+      Aplicar el mismo helper a las rutas viejas en un cambio aparte.
