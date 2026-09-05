@@ -1,4 +1,9 @@
-import "server-only";
+// Sin "server-only" a propósito: no toca process.env ni ningún secreto, es
+// control de flujo puro sobre el resultado ya resuelto de una consulta.
+// scripts/reconciliar-ordenes.ts necesita reutilizar
+// generarYEntregarBoletoDigital (que llama a esta función) fuera de Next, y
+// ese guard revienta fuera del bundle de servidor -- mismo motivo que
+// hash-nucleo.ts/resend-nucleo.ts.
 
 // PGRST303 "JWT issued at future": bug reconocido de la infraestructura de
 // Supabase (desfase de reloj entre los nodos de PostgREST/Auth), no algo

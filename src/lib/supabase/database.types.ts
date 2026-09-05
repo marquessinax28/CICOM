@@ -685,6 +685,47 @@ export type Database = {
       // regenerar con `supabase gen types typescript --linked`. Reemplazar
       // este bloque cuando eso ocurra.
       // Parche manual -- tabla creada por
+      // supabase/migrations/20260905090000_reconciliaciones_orden.sql,
+      // pendiente de aplicar vía CLI y regenerar tipos.
+      reconciliaciones_orden: {
+        Row: {
+          detalle: string | null
+          estado_stripe: string
+          fecha: string
+          id: number
+          motivo: string
+          orden_id: number
+          resultado: string
+        }
+        Insert: {
+          detalle?: string | null
+          estado_stripe: string
+          fecha?: string
+          id?: number
+          motivo: string
+          orden_id: number
+          resultado: string
+        }
+        Update: {
+          detalle?: string | null
+          estado_stripe?: string
+          fecha?: string
+          id?: number
+          motivo?: string
+          orden_id?: number
+          resultado?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reconciliaciones_orden_orden_id_fkey"
+            columns: ["orden_id"]
+            isOneToOne: false
+            referencedRelation: "ordenes_compra"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      // Parche manual -- tabla creada por
       // supabase/migrations/20260904090600_reemisiones_lote.sql, pendiente
       // de aplicar vía CLI y regenerar tipos.
       reemisiones_lote: {
