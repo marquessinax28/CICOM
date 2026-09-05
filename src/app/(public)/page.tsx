@@ -23,13 +23,29 @@ function extracto(texto: string, largo = LARGO_EXTRACTO): { corto: string; trunc
   return { corto: texto.slice(0, largo).trimEnd() + "…", truncado: true };
 }
 
+// Cada sección de la portada ya sabe renderizar "todavía no hay nada" (ver
+// más abajo: `edicion?.nombre ?? "..."`, `modulos.length === 0`, etc.) --
+// ese mismo camino, ya probado, sirve igual para "no se pudo cargar" que
+// para "el comité no ha subido contenido". Que patrocinadores (o cualquier
+// otra) falle no debe tumbar toda la portada con un 500; se registra en el
+// log para que quede visible del lado del servidor, y la sección
+// simplemente sale vacía para quien esté viendo la página en ese momento.
+async function cargarSeguro<T>(promesa: Promise<T>, porDefecto: T, nombre: string): Promise<T> {
+  try {
+    return await promesa;
+  } catch (error) {
+    console.error(`[home] no se pudo cargar "${nombre}" -- se muestra la sección vacía`, error);
+    return porDefecto;
+  }
+}
+
 export default async function HomePage() {
   const [edicion, modulos, concursos, cursosTalleres, patrocinadores] = await Promise.all([
-    getEdicionActual(),
-    getModulos(),
-    getConcursos(),
-    getCursosTalleres(),
-    getPatrocinadores(),
+    cargarSeguro(getEdicionActual(), null, "edicion"),
+    cargarSeguro(getModulos(), [], "modulos"),
+    cargarSeguro(getConcursos(), [], "concursos"),
+    cargarSeguro(getCursosTalleres(), [], "cursosTalleres"),
+    cargarSeguro(getPatrocinadores(), [], "patrocinadores"),
   ]);
 
   const homenajeadoBio = edicion?.homenajeado_bio ? extracto(edicion.homenajeado_bio) : null;
