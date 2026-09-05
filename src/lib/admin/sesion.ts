@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import {
   verificarSesionAdmin,
+  obtenerCookieDeRequest,
   NOMBRE_COOKIE_SESION_ADMIN,
   type SesionAdminInfo,
 } from "./sesion-nucleo";
@@ -14,17 +15,29 @@ import {
 // futuras rutas de API bajo /api/admin).
 export * from "./sesion-nucleo";
 
-// Atajo para Server Components y Route Handlers: lee la cookie con
-// next/headers (API que no existe en proxy.ts, por eso no vive en
-// sesion-nucleo.ts) y hace la verificación completa. Toda página bajo
-// /admin (protegido) y toda ruta de API de admin futura (Fase 6b: lotes,
-// cupos) debe llamar esto -- el layout protegido ya lo hace por las
-// páginas, pero un Route Handler no hereda la protección de ningún layout
-// (Next.js lo advierte explícitamente: las rutas de servidor no son parte
-// del árbol de render), así que cada una debe volver a llamarlo.
+// Para Server Components y layouts (páginas bajo /admin/(protegido)):
+// next/headers sí tiene contexto de petición ahí en el servir real de
+// Next. NUNCA usar esto en un Route Handler -- ver
+// obtenerSesionAdminDesdeRequest más abajo y el comentario de
+// obtenerCookieDeRequest en sesion-nucleo.ts (misma razón que ya causó el
+// mismo error en /api/admin/logout).
 export async function obtenerSesionAdminActual(): Promise<SesionAdminInfo | null> {
   const cookieStore = await cookies();
   const token = cookieStore.get(NOMBRE_COOKIE_SESION_ADMIN)?.value;
+  const supabase = createServiceRoleClient();
+  return verificarSesionAdmin(supabase, token);
+}
+
+// Para Route Handlers (todo lo bajo /api/admin): lee la cookie del header
+// de la Request recibida, no de next/headers -- funciona igual en
+// producción real y cuando una prueba importa el export y lo llama
+// directo, que es como se prueba cada ruta en este proyecto. Toda ruta de
+// API de admin (lotes, y lo que siga en Fase 6b/7) debe usar esta, nunca
+// obtenerSesionAdminActual.
+export async function obtenerSesionAdminDesdeRequest(
+  request: Request
+): Promise<SesionAdminInfo | null> {
+  const token = obtenerCookieDeRequest(request, NOMBRE_COOKIE_SESION_ADMIN);
   const supabase = createServiceRoleClient();
   return verificarSesionAdmin(supabase, token);
 }

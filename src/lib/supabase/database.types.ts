@@ -463,29 +463,35 @@ export type Database = {
           },
         ]
       }
+      // Parche manual -- archivo_descargado se dividió en pdf_descargado/
+      // excel_descargado por supabase/migrations/20260904090500_lotes_boletos_generacion.sql,
+      // pendiente de aplicar vía CLI y regenerar tipos.
       lotes_boletos: {
         Row: {
-          archivo_descargado: boolean
           cantidad: number
+          excel_descargado: boolean
           fecha_generacion: string
           generado_por: number
           id: number
+          pdf_descargado: boolean
           tipo: string
         }
         Insert: {
-          archivo_descargado?: boolean
           cantidad: number
+          excel_descargado?: boolean
           fecha_generacion?: string
           generado_por: number
           id?: number
+          pdf_descargado?: boolean
           tipo: string
         }
         Update: {
-          archivo_descargado?: boolean
           cantidad?: number
+          excel_descargado?: boolean
           fecha_generacion?: string
           generado_por?: number
           id?: number
+          pdf_descargado?: boolean
           tipo?: string
         }
         Relationships: [
@@ -817,6 +823,18 @@ export type Database = {
           p_nombre: string
           p_orden_id: number
           p_password_hash: string
+        }
+        Returns: number
+      }
+      // Parche manual -- función creada por
+      // supabase/migrations/20260904090500_lotes_boletos_generacion.sql.
+      fn_generar_lote_boletos: {
+        Args: {
+          p_cantidad: number
+          p_folios: string[]
+          p_generado_por: number
+          p_password_hashes: string[]
+          p_tipo: string
         }
         Returns: number
       }

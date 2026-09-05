@@ -242,6 +242,7 @@ Este es el activo más sensible del sistema: un solo PDF puede contener 2,500 cr
 - **Si un secreto llegó a Git alguna vez, considéralo comprometido:** rótalo primero en el proveedor y después limpia el historial (`git filter-repo` / BFG) y fuerza la reescritura del remoto. Borrar el archivo en un commit nuevo **no lo elimina del historial**.
 - Activa **escaneo de secretos** (GitHub secret scanning + push protection, o `gitleaks` en pre-commit y CI) que bloquee el push.
 - **Ambientes separados** dev / staging / producción, con claves distintas. Stripe en modo prueba en dev y staging, modo real solo en producción. Nunca uses datos reales de asistentes en dev.
+  - **Deuda técnica confirmada (2026-09-04, al construir Fase 6b):** hoy no existe esta separación para Supabase -- un solo proyecto sirve tanto a la app como a toda la suite de pruebas automatizadas, que corre contra esa misma base. La mayoría de las tablas se pueden limpiar después de una prueba, pero `lotes_boletos` es intencionalmente inmutable (ni superadmin puede borrar filas, es la protección anti-fraude de la sección 5-bis) -- eso significa que una prueba automatizada que genere un lote real dejaría una fila de auditoría falsa **para siempre**, mezclada con lotes reales, y consumiría cupo real de forma permanente. Por eso `tests/fase6b-lotes.test.ts` no ejercita `fn_generar_lote_boletos` de punta a punta (ver el comentario al inicio de ese archivo). Mientras no exista un proyecto de Supabase separado para pruebas, este tipo de hueco de cobertura se repetirá en cualquier flujo futuro que toque una tabla de auditoría inmutable.
 - Documenta la rotación: quién tiene qué clave y cada cuánto se rota. Incluye aquí las credenciales de GoDaddy, Supabase, Stripe, Vercel y Resend.
 
 ### 9. Transporte, cabeceras y cifrado
@@ -441,3 +442,18 @@ Antes de abrir la venta al público falta:
       -- hueco preexistente descubierto al construir el login de admin, que
       sí lleva esa verificación desde el inicio (`src/lib/origin-check.ts`).
       Aplicar el mismo helper a las rutas viejas en un cambio aparte.
+- [ ] **Diseño de `/admin` (anotado 2026-09-04, Fase 6b):** el panel
+      (`/admin/lotes` y el resto) es HTML sin estilo todavía -- funcional,
+      probado en producción (lote real generado y descargado), pero sin el
+      diseño del sitio. Aplicarlo cuando terminen las tandas de impresión de
+      esta edición, para no interrumpir el flujo de generación con cambios
+      visuales a medio camino.
+- [ ] **Script de reemisión de URL firmada para archivos de lote ya
+      descargados** (anotado 2026-09-04): los archivos de un lote quedan en
+      `lotes-boletos` aunque `pdf_descargado`/`excel_descargado` ya estén en
+      `true` (la bandera bloquea la descarga por el panel, no borra el
+      archivo) -- falta un script `npx tsx` que emita una URL firmada nueva
+      para un lote ya descargado, por si se pierde el archivo entregado.
+      Mismo patrón que `scripts/reenviar-boleto.ts`: muestra los datos del
+      lote, pide confirmación explícita, y registra el acceso (probablemente
+      en `reenvios_boleto` o una tabla de auditoría equivalente para lotes).

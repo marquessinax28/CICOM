@@ -3,7 +3,14 @@
 // importa tanto desde el webhook (Next) como desde
 // scripts/generar-boleto-muestra.ts (tsx, fuera de Next), donde ese guard
 // siempre lanza.
-import { PDFDocument, StandardFonts, rgb, type PDFFont, type PDFPage } from "pdf-lib";
+import {
+  PDFDocument,
+  StandardFonts,
+  rgb,
+  type PDFFont,
+  type PDFImage,
+  type PDFPage,
+} from "pdf-lib";
 import {
   CAMPOS_BOLETO_DIGITAL,
   PLANTILLA_ALTO_PX,
@@ -18,6 +25,17 @@ export type DatosBoletoDigital = {
   correo: string;
   /** Monto realmente pagado (ordenes_compra.monto_centavos), no un precio de catálogo. */
   costoCentavos: number;
+};
+
+// Versión para una página de lote: costo/nombre/correo no aplican todavía
+// (el boleto nace sin comprador; se activa después) -- omitirlos deja esas
+// zonas de la plantilla en blanco, en vez de dibujar un texto vacío.
+export type DatosBoletoPagina = {
+  folio: string;
+  password: string;
+  nombre?: string;
+  correo?: string;
+  costoCentavos?: number;
 };
 
 // Navy oscuro del diseño (aprox. el mismo tono que el texto impreso de las
@@ -103,25 +121,25 @@ function dibujarCampo(
   });
 }
 
-// plantillaPng: bytes del PNG de la plantilla, ya leídos del bucket
-// privado por el llamador (esta función no conoce Supabase Storage --
-// mantiene la generación de PDF independiente de dónde vive el archivo,
-// para poder probarla / generar una muestra sin tocar la base de datos).
-export async function generarPdfBoletoDigital(
-  datos: DatosBoletoDigital,
-  plantillaPng: Uint8Array
-): Promise<Uint8Array> {
-  const pdf = await PDFDocument.create();
-  const imagen = await pdf.embedPng(plantillaPng);
+// Agrega UNA página al documento ya abierto, reutilizando la imagen y las
+// fuentes ya incrustadas (embedPng/embedFont son costosas -- un lote de
+// cientos de páginas las incrusta una sola vez, no una por boleto).
+// costo/nombre/correo se omiten si no vienen (boletos de lote: nacen sin
+// comprador, esas zonas quedan en blanco en vez de dibujar texto vacío).
+function agregarPaginaBoleto(
+  pdf: PDFDocument,
+  imagen: PDFImage,
+  fontRegular: PDFFont,
+  fontBold: PDFFont,
+  datos: DatosBoletoPagina
+): void {
   const page = pdf.addPage([PLANTILLA_ANCHO_PX, PLANTILLA_ALTO_PX]);
   page.drawImage(imagen, { x: 0, y: 0, width: PLANTILLA_ANCHO_PX, height: PLANTILLA_ALTO_PX });
 
-  const fontRegular = await pdf.embedFont(StandardFonts.Helvetica);
-  const fontBold = await pdf.embedFont(StandardFonts.HelveticaBold);
-
-  const costoTexto = formatearCosto(datos.costoCentavos);
-
-  dibujarCampo(page, CAMPOS_BOLETO_DIGITAL.costo, costoTexto, fontRegular, fontBold);
+  if (datos.costoCentavos !== undefined) {
+    const costoTexto = formatearCosto(datos.costoCentavos);
+    dibujarCampo(page, CAMPOS_BOLETO_DIGITAL.costo, costoTexto, fontRegular, fontBold);
+  }
 
   dibujarCampo(page, CAMPOS_BOLETO_DIGITAL.folioTalon, datos.folio, fontRegular, fontBold);
   dibujarCampo(page, CAMPOS_BOLETO_DIGITAL.contrasenaTalon, datos.password, fontRegular, fontBold);
@@ -132,8 +150,46 @@ export async function generarPdfBoletoDigital(
   dibujarCampo(page, CAMPOS_BOLETO_DIGITAL.folioDerecha, datos.folio, fontRegular, fontBold);
   dibujarCampo(page, CAMPOS_BOLETO_DIGITAL.contrasenaDerecha, datos.password, fontRegular, fontBold);
 
-  dibujarCampo(page, CAMPOS_BOLETO_DIGITAL.nombre, datos.nombre, fontRegular, fontBold);
-  dibujarCampo(page, CAMPOS_BOLETO_DIGITAL.correo, datos.correo, fontRegular, fontBold);
+  if (datos.nombre !== undefined) {
+    dibujarCampo(page, CAMPOS_BOLETO_DIGITAL.nombre, datos.nombre, fontRegular, fontBold);
+  }
+  if (datos.correo !== undefined) {
+    dibujarCampo(page, CAMPOS_BOLETO_DIGITAL.correo, datos.correo, fontRegular, fontBold);
+  }
+}
+
+// plantillaPng: bytes del PNG de la plantilla, ya leídos del bucket
+// privado por el llamador (esta función no conoce Supabase Storage --
+// mantiene la generación de PDF independiente de dónde vive el archivo,
+// para poder probarla / generar una muestra sin tocar la base de datos).
+export async function generarPdfBoletoDigital(
+  datos: DatosBoletoDigital,
+  plantillaPng: Uint8Array
+): Promise<Uint8Array> {
+  const pdf = await PDFDocument.create();
+  const imagen = await pdf.embedPng(plantillaPng);
+  const fontRegular = await pdf.embedFont(StandardFonts.Helvetica);
+  const fontBold = await pdf.embedFont(StandardFonts.HelveticaBold);
+
+  agregarPaginaBoleto(pdf, imagen, fontRegular, fontBold, datos);
+
+  return pdf.save();
+}
+
+// Un PDF, una página por boleto del lote -- misma plantilla, folio y
+// contraseña en claro (para imprimir), costo/nombre/correo en blanco.
+export async function generarPdfLoteBoletos(
+  datosLista: DatosBoletoPagina[],
+  plantillaPng: Uint8Array
+): Promise<Uint8Array> {
+  const pdf = await PDFDocument.create();
+  const imagen = await pdf.embedPng(plantillaPng);
+  const fontRegular = await pdf.embedFont(StandardFonts.Helvetica);
+  const fontBold = await pdf.embedFont(StandardFonts.HelveticaBold);
+
+  for (const datos of datosLista) {
+    agregarPaginaBoleto(pdf, imagen, fontRegular, fontBold, datos);
+  }
 
   return pdf.save();
 }

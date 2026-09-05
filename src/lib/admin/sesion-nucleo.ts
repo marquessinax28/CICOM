@@ -8,7 +8,11 @@
 // entorno de servidor) ya no proteja por su cuenta.
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/supabase/database.types";
-import { hashTokenSesionAdmin, generarTokenSesionAdmin } from "@/lib/hash-nucleo";
+import {
+  hashTokenSesionAdmin,
+  generarTokenSesionAdmin,
+  compararPasswordAdmin,
+} from "@/lib/hash-nucleo";
 
 export function crearClienteAdminSupabase(): SupabaseClient<Database> {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -127,6 +131,53 @@ export async function destruirSesionAdmin(
 ): Promise<void> {
   const tokenHash = hashTokenSesionAdmin(tokenCrudo);
   await supabase.from("sesiones_admin").delete().eq("token_hash", tokenHash);
+}
+
+// Compartido entre login (route.ts) y la reautenticación antes de generar
+// un lote: mismo contador de bloqueo progresivo para ambos casos -- un
+// intento fallido aquí cuenta igual que uno fallido en login, en vez de
+// dos mecanismos de bloqueo en paralelo.
+export type ResultadoVerificacionPassword =
+  | { ok: true }
+  | { ok: false; motivo: "bloqueado"; minutosRestantes: number }
+  | { ok: false; motivo: "incorrecta" };
+
+export async function verificarPasswordAdminConBloqueo(
+  supabase: SupabaseClient<Database>,
+  admin: {
+    id: number;
+    password_hash: string;
+    intentos_fallidos: number;
+    bloqueado_hasta: string | null;
+  },
+  passwordPlano: string
+): Promise<ResultadoVerificacionPassword> {
+  if (admin.bloqueado_hasta && new Date(admin.bloqueado_hasta) > new Date()) {
+    const minutosRestantes = Math.ceil(
+      (new Date(admin.bloqueado_hasta).getTime() - Date.now()) / 60_000
+    );
+    return { ok: false, motivo: "bloqueado", minutosRestantes };
+  }
+
+  const passwordOk = await compararPasswordAdmin(passwordPlano, admin.password_hash);
+
+  if (!passwordOk) {
+    const nuevoIntentos = admin.intentos_fallidos + 1;
+    await supabase
+      .from("administradores")
+      .update({
+        intentos_fallidos: nuevoIntentos,
+        bloqueado_hasta: calcularBloqueoHasta(nuevoIntentos),
+      })
+      .eq("id", admin.id);
+    return { ok: false, motivo: "incorrecta" };
+  }
+
+  await supabase
+    .from("administradores")
+    .update({ intentos_fallidos: 0, bloqueado_hasta: null })
+    .eq("id", admin.id);
+  return { ok: true };
 }
 
 export const NOMBRE_COOKIE_SESION_ADMIN = "cicom_admin_sesion";

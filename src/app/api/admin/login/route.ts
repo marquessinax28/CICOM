@@ -6,14 +6,11 @@ import { verifyTurnstile } from "@/lib/turnstile";
 import { getClientIp } from "@/lib/request-ip";
 import { origenEsConfiable } from "@/lib/origin-check";
 import { errorEsperado, errorInesperado } from "@/lib/api-errors";
-import {
-  HASH_DUMMY_LOGIN_ADMIN,
-  compararPasswordAdmin,
-} from "@/lib/hash";
+import { HASH_DUMMY_LOGIN_ADMIN, compararPasswordAdmin } from "@/lib/hash";
 import {
   crearSesionAdmin,
   normalizarUsuario,
-  calcularBloqueoHasta,
+  verificarPasswordAdminConBloqueo,
   NOMBRE_COOKIE_SESION_ADMIN,
 } from "@/lib/admin/sesion";
 
@@ -86,34 +83,16 @@ export async function POST(request: Request) {
     return errorEsperado(400, MENSAJE_GENERICO);
   }
 
-  if (admin.bloqueado_hasta && new Date(admin.bloqueado_hasta) > new Date()) {
-    const minutosRestantes = Math.ceil(
-      (new Date(admin.bloqueado_hasta).getTime() - Date.now()) / 60_000
-    );
-    return errorEsperado(
-      429,
-      `Cuenta bloqueada temporalmente por demasiados intentos fallidos. Intenta de nuevo en ${minutosRestantes} minuto(s).`
-    );
-  }
-
-  const passwordOk = await compararPasswordAdmin(password, admin.password_hash);
-
-  if (!passwordOk) {
-    const nuevoIntentos = admin.intentos_fallidos + 1;
-    await supabase
-      .from("administradores")
-      .update({
-        intentos_fallidos: nuevoIntentos,
-        bloqueado_hasta: calcularBloqueoHasta(nuevoIntentos),
-      })
-      .eq("id", admin.id);
+  const resultado = await verificarPasswordAdminConBloqueo(supabase, admin, password);
+  if (!resultado.ok) {
+    if (resultado.motivo === "bloqueado") {
+      return errorEsperado(
+        429,
+        `Cuenta bloqueada temporalmente por demasiados intentos fallidos. Intenta de nuevo en ${resultado.minutosRestantes} minuto(s).`
+      );
+    }
     return errorEsperado(400, MENSAJE_GENERICO);
   }
-
-  await supabase
-    .from("administradores")
-    .update({ intentos_fallidos: 0, bloqueado_hasta: null })
-    .eq("id", admin.id);
 
   let token: string;
   try {
