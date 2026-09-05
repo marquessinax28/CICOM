@@ -2,11 +2,58 @@ import bcrypt from "bcryptjs";
 import { createHash, randomBytes, randomInt } from "node:crypto";
 
 // bcryptjs (puro JS, sin bindings nativos) en vez de argon2/bcrypt nativo:
-// funciones serverless de Vercel no siempre pueden compilar addons nativos,
-// y el costo 12 de bcrypt sigue siendo apropiado para el bajo volumen de
-// intentos de este flujo (con el bloqueo progresivo por fila que ya aplica
-// cada endpoint).
-const BCRYPT_COST = 12;
+// funciones serverless de Vercel no siempre pueden compilar addons nativos.
+// Justo por ser JS puro, su versión "async" NO reparte el trabajo en el
+// pool de hilos de libuv (eso es exclusivo del paquete nativo bcrypt) --
+// solo usa setImmediate para no bloquear el event loop, pero el cálculo
+// entero corre en un solo hilo. Confirmado midiendo: paralelizar con
+// Promise.all no bajó el tiempo ni un poco (2026-09-05). Eso importa para
+// BCRYPT_COST_BOLETO más abajo, que sí se hashea en volumen.
+//
+// Un solo costo compartido (12) para código de verificación, contraseña de
+// boleto y contraseña de admin funcionaba mientras nadie hasheaba cientos
+// de una sentada -- dejó de tener sentido en cuanto la generación de lotes
+// empezó a hashear cientos de contraseñas de boleto seguidas (bloqueando
+// una función serverless completa). Cada uso tiene ahora su propio costo,
+// justificado por separado -- que quede claro que no es descuido si en un
+// año alguien se pregunta por qué difieren.
+
+// Código de verificación de 6 dígitos: protege el correo de alguien ANTES
+// de una compra. Se hashea uno a la vez, nunca en lote -- el costo no
+// afecta el rendimiento de ningún flujo real, así que se queda en el nivel
+// alto sin ninguna razón para bajarlo.
+const BCRYPT_COST_CODIGO_VERIFICACION = 12;
+
+// Contraseña de boleto (8 caracteres, alfabeto reducido de 32 símbolos --
+// ver generarPasswordBoleto). A diferencia del código de arriba, ESTA sí se
+// hashea en lote: la generación de boletos físicos hashea cientos seguidas,
+// secuencial (bcryptjs no las puede paralelizar, ver el comentario de
+// arriba), y a costo 12 eso por sí solo se acercaba al límite de tiempo de
+// la función serverless (~112s medidos para 500 -- confirmado en Vercel con
+// un FUNCTION_INVOCATION_TIMEOUT real, 2026-09-05). Bajado a 10 (~28s para
+// 500, medido) -- el espacio de contraseñas no cambia (32^8 combinaciones);
+// lo único que cambia es cuánto le cuesta a un atacante offline probar cada
+// intento SI la base de datos se filtra, porque contra el endpoint real la
+// defensa sigue siendo el bloqueo progresivo + Turnstile (CLAUDE.md sección
+// 6), que no dependen del costo del hash. La longitud de 8 caracteres ya
+// era, desde el diseño original (CLAUDE.md sección 2), una entropía nominal
+// modesta aceptada a cambio de poder teclearse a mano desde un boleto
+// impreso -- este cambio no altera esa ecuación, solo el costo de cada
+// intento offline. Los hashes ya emitidos con costo 12 siguen siendo
+// válidos para siempre sin ninguna migración: bcrypt guarda el costo
+// dentro del propio string del hash ($2b$12$... vs $2b$10$...),
+// bcrypt.compare() lo lee de ahí -- verificado que ambos costos conviven
+// sin problema en la misma columna.
+const BCRYPT_COST_BOLETO = 10;
+
+// Contraseña de administrador (24 caracteres, alfabeto completo -- ver
+// generarPasswordAdmin). Solo dos cuentas, se hashea una a la vez y pocas
+// veces (login, reautenticación antes de generar un lote) -- nunca en
+// volumen, así que el costo no afecta ningún flujo real. Se queda en el
+// nivel alto porque protege el acceso más sensible del sistema (genera
+// lotes, consume cupo real) -- aquí sí conviene la protección offline más
+// fuerte que da un costo alto, sin ningún costo de rendimiento a cambio.
+const BCRYPT_COST_ADMIN = 12;
 
 // Código de verificación de 6 dígitos, CSPRNG. Se hashea igual que cualquier
 // credencial (CLAUDE.md sección 2) -- nunca se guarda en claro.
@@ -15,7 +62,7 @@ export function generarCodigoVerificacion(): string {
 }
 
 export async function hashCodigoVerificacion(codigo: string): Promise<string> {
-  return bcrypt.hash(codigo, BCRYPT_COST);
+  return bcrypt.hash(codigo, BCRYPT_COST_CODIGO_VERIFICACION);
 }
 
 export async function compararCodigoVerificacion(
@@ -68,7 +115,7 @@ export function generarPasswordBoleto(): string {
 }
 
 export async function hashPasswordBoleto(password: string): Promise<string> {
-  return bcrypt.hash(password, BCRYPT_COST);
+  return bcrypt.hash(password, BCRYPT_COST_BOLETO);
 }
 
 export async function compararPasswordBoleto(password: string, hash: string): Promise<boolean> {
@@ -91,7 +138,7 @@ export function generarPasswordAdmin(): string {
 }
 
 export async function hashPasswordAdmin(password: string): Promise<string> {
-  return bcrypt.hash(password, BCRYPT_COST);
+  return bcrypt.hash(password, BCRYPT_COST_ADMIN);
 }
 
 export async function compararPasswordAdmin(password: string, hash: string): Promise<boolean> {
